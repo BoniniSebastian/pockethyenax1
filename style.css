@@ -1,231 +1,262 @@
-:root{
-  --bg:#050b12;
-  --panel:rgba(255,255,255,.06);
-  --panelBorder:rgba(255,255,255,.10);
-  --text:rgba(255,255,255,.95);
-  --muted:rgba(255,255,255,.62);
-  --cyan:#22d3ee;
-  --pink:#e879f9;
-  --orange:#ff7a00;
-  --green:#6ee7b7;
-  --danger:#ff7b7b;
-  --radius:18px;
-}
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <title>PHX1</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bgBlob blobA"></div>
+  <div class="bgBlob blobB"></div>
+  <div class="bgBlob blobC"></div>
 
-*{
-  box-sizing:border-box;
-}
+  <main class="appShell">
+    <header class="topBar">
+      <div>
+        <div class="eyebrow">PocketHyenaX1</div>
+        <h1>PHX1</h1>
+      </div>
+      <div class="topBarRight">
+        <button class="iconButton" id="refreshBtn" title="Uppdatera">↻</button>
+      </div>
+    </header>
 
-html,body{
-  margin:0;
-  min-height:100%;
-  background:var(--bg);
-  color:var(--text);
-  font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
+    <section class="statsRow">
+      <article class="statCard">
+        <span class="statLabel">Samtal idag</span>
+        <strong class="statValue" id="callsToday">0</strong>
+      </article>
 
-body{
-  position:relative;
-  overflow-x:hidden;
-}
+      <article class="statCard">
+        <span class="statLabel">Svar idag</span>
+        <strong class="statValue" id="answersToday">0</strong>
+      </article>
+    </section>
 
-.bgBlob{
-  position:fixed;
-  border-radius:999px;
-  filter:blur(80px);
-  opacity:.48;
-  pointer-events:none;
-  z-index:0;
-}
+    <section class="quickTools">
+      <button class="toolChip active" data-panel-target="analysisPanel">Analys</button>
+      <button class="toolChip" data-panel-target="managePanel">Hantera kort</button>
+      <button class="toolChip" data-panel-target="backupPanel">Backup</button>
+      <button class="toolChip" data-panel-target="surprisePanel">Överraska mig</button>
+    </section>
 
-.blob1{
-  width:260px;
-  height:260px;
-  left:-70px;
-  top:40px;
-  background:radial-gradient(circle at center, rgba(34,211,238,.95) 0%, rgba(34,211,238,.15) 45%, transparent 70%);
-}
+    <section class="panelBlock active" id="analysisPanel">
+      <div class="panelHead">
+        <h2>Analys</h2>
+        <button class="ghostButton" id="toggleTenDaysBtn">Visa 10 dagar</button>
+      </div>
 
-.blob2{
-  width:320px;
-  height:320px;
-  right:-100px;
-  bottom:20px;
-  background:radial-gradient(circle at center, rgba(232,121,249,.95) 0%, rgba(255,122,0,.20) 42%, transparent 70%);
-}
+      <div class="analysisSummary" id="analysisSummary"></div>
+      <div class="tenDaysWrap hidden" id="tenDaysWrap"></div>
+    </section>
 
-.appShell{
-  position:relative;
-  z-index:1;
-  width:min(860px, 100%);
-  margin:0 auto;
-  padding:20px 14px 36px;
-}
+    <section class="panelBlock hidden" id="managePanel">
+      <div class="panelHead">
+        <h2>Hantera kort</h2>
+      </div>
 
-.topBar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:18px;
-}
+      <form id="cardForm" class="manageForm">
+        <input type="hidden" id="cardFormId" />
 
-.eyebrow{
-  font-size:12px;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  color:var(--muted);
-  margin-bottom:4px;
-}
+        <div class="formGrid">
+          <label class="field">
+            <span>Namn</span>
+            <input id="formName" type="text" placeholder="Kontakt / kund" required />
+          </label>
 
-h1{
-  margin:0;
-  font-size:32px;
-  line-height:1;
-}
+          <label class="field">
+            <span>Telefonnummer</span>
+            <input id="formPhone" type="text" placeholder="070..." />
+          </label>
 
-h2{
-  margin:0;
-  font-size:16px;
-  font-weight:700;
-}
+          <label class="field">
+            <span>E-post</span>
+            <input id="formEmail" type="email" placeholder="mail@kund.se" />
+          </label>
 
-.statsRow{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-bottom:16px;
-}
+          <label class="field">
+            <span>VNR</span>
+            <input id="formVnr" type="text" placeholder="VNR" />
+          </label>
 
-.statCard{
-  background:var(--panel);
-  border:1px solid var(--panelBorder);
-  border-radius:var(--radius);
-  padding:14px;
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
-  box-shadow:0 10px 30px rgba(0,0,0,.22);
-}
+          <label class="field">
+            <span>Länk</span>
+            <input id="formLink" type="url" placeholder="https://..." />
+          </label>
 
-.statLabel{
-  display:block;
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:8px;
-}
+          <label class="field">
+            <span>Status</span>
+            <input id="formStatus" type="text" placeholder="Ej prospekterad / Bokat möte..." />
+          </label>
+        </div>
 
-.statValue{
-  font-size:28px;
-  line-height:1;
-}
+        <label class="field">
+          <span>Viktig information</span>
+          <input id="formImportantInfo" type="text" placeholder="Få tag på honom vecka 12" />
+        </label>
 
-.sectionBlock{
-  margin-bottom:16px;
-}
+        <label class="field">
+          <span>Anteckningar</span>
+          <textarea id="formNotes" rows="4" placeholder="Interna anteckningar..."></textarea>
+        </label>
 
-.sectionHead{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:10px;
-  padding:0 2px;
-}
+        <div class="formActions">
+          <button type="submit" class="primaryButton" id="saveCardBtn">Spara kort</button>
+          <button type="button" class="ghostButton" id="resetCardFormBtn">Nytt kort</button>
+        </div>
+      </form>
 
-.cardsList,
-.logList{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
+      <div class="manageList" id="manageList"></div>
+    </section>
 
-.card{
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:20px;
-  padding:14px;
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
-  box-shadow:0 10px 30px rgba(0,0,0,.22);
-}
+    <section class="panelBlock hidden" id="backupPanel">
+      <div class="panelHead">
+        <h2>Backup</h2>
+      </div>
 
-.cardInfoLine{
-  font-size:13px;
-  color:#ffd68a;
-  margin-bottom:6px;
-}
+      <div class="backupActions">
+        <button class="primaryButton" id="exportJsonBtn">Exportera JSON-backup</button>
+        <button class="ghostButton" id="exportCsvBtn">Exportera samtalslogg CSV</button>
+      </div>
 
-.cardName{
-  font-size:19px;
-  font-weight:700;
-  margin-bottom:8px;
-}
+      <div class="importWrap">
+        <label class="field">
+          <span>Importera JSON-backup</span>
+          <input id="importJsonInput" type="file" accept=".json,application/json" />
+        </label>
+      </div>
 
-.cardLinks{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px 14px;
-  margin-bottom:8px;
-}
+      <p class="helperText">
+        Import lägger in kort och logg från backupfilen. Kör försiktigt på riktig data.
+      </p>
+    </section>
 
-.cardLink{
-  color:var(--cyan);
-  text-decoration:none;
-  font-size:14px;
-}
+    <section class="panelBlock hidden" id="surprisePanel">
+      <div class="panelHead">
+        <h2>Överraska mig</h2>
+      </div>
+      <div class="surpriseCard" id="surpriseCard">
+        Tryck på knappen nedan för att få ett slumpat kort.
+      </div>
+      <button class="primaryButton" id="surpriseBtn">Välj slumpkort</button>
+    </section>
 
-.cardLink:hover{
-  text-decoration:underline;
-}
+    <section class="listHead">
+      <h2>Kort</h2>
 
-.cardStatus{
-  font-size:13px;
-  color:var(--pink);
-  text-shadow:0 0 10px rgba(232,121,249,.42);
-}
+      <div class="filterRow" id="filterRow">
+        <button class="filterButton active" data-filter="all">Alla</button>
+        <button class="filterButton" data-filter="unprospected">Ej prospekterad</button>
+      </div>
+    </section>
 
-.logItem{
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:16px;
-  padding:12px;
-  font-size:13px;
-  color:var(--text);
-}
+    <section id="cards" class="cardsList"></section>
 
-.logMeta{
-  display:block;
-  margin-top:4px;
-  color:var(--muted);
-  font-size:12px;
-}
+    <section class="listHead logHead">
+      <h2>Logg</h2>
+    </section>
 
-.emptyState{
-  background:rgba(255,255,255,.04);
-  border:1px dashed rgba(255,255,255,.12);
-  border-radius:18px;
-  padding:18px;
-  color:var(--muted);
-  font-size:14px;
-}
+    <section id="log" class="logList"></section>
+  </main>
 
-@media (max-width:640px){
-  .appShell{
-    padding:16px 12px 28px;
-  }
+  <div class="sheetOverlay" id="sheetOverlay"></div>
 
-  h1{
-    font-size:28px;
-  }
+  <aside class="bottomSheet" id="bottomSheet" aria-hidden="true">
+    <div class="sheetHandleWrap">
+      <button class="sheetClose" id="closeSheetBtn" aria-label="Stäng">✕</button>
+      <div class="sheetHandle"></div>
+    </div>
 
-  .statsRow{
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
+    <div class="sheetContent" id="sheetContent">
+      <div class="sheetTop">
+        <div class="sheetEyebrow" id="sheetImportantInfo"></div>
+        <h3 class="sheetName" id="sheetName">Kontakt</h3>
+        <div class="sheetStatus" id="sheetStatus"></div>
+      </div>
 
-  .statCard{
-    padding:12px;
-  }
+      <section class="sheetSection accordion">
+        <button class="accordionHeader" data-accordion-toggle="contactInfoBody">
+          <span>Kontakt</span>
+          <span class="accordionArrow">⌄</span>
+        </button>
 
-  .statValue{
-    font-size:24px;
-  }
-}
+        <div class="accordionBody open" id="contactInfoBody">
+          <div class="fieldStack">
+            <label class="field">
+              <span>Namn</span>
+              <input id="sheetNameInput" type="text" />
+            </label>
+
+            <label class="field">
+              <span>Telefonnummer</span>
+              <input id="sheetPhoneInput" type="text" />
+            </label>
+
+            <label class="field">
+              <span>E-post</span>
+              <input id="sheetEmailInput" type="email" />
+            </label>
+
+            <label class="field">
+              <span>VNR</span>
+              <input id="sheetVnrInput" type="text" />
+            </label>
+
+            <label class="field">
+              <span>Länk</span>
+              <input id="sheetLinkInput" type="url" />
+            </label>
+
+            <label class="field">
+              <span>Viktig information</span>
+              <input id="sheetImportantInfoInput" type="text" />
+            </label>
+
+            <label class="field">
+              <span>Status</span>
+              <input id="sheetStatusInput" type="text" />
+            </label>
+          </div>
+
+          <div class="sheetLinkRow">
+            <a id="sheetPhoneLink" class="sheetActionLink" href="#">Ring</a>
+            <a id="sheetOpenLink" class="sheetActionLink" href="#" target="_blank" rel="noopener noreferrer">Öppna länk</a>
+          </div>
+
+          <button class="primaryButton" id="saveContactInfoBtn">Spara kontaktinfo</button>
+        </div>
+      </section>
+
+      <section class="sheetSection">
+        <div class="sectionMiniHead">Anteckningar</div>
+        <label class="field">
+          <textarea id="sheetNotesInput" rows="5" placeholder="Anteckningar..."></textarea>
+        </label>
+        <div class="rowActions">
+          <button class="primaryButton" id="saveNotesBtn">Spara anteckningar</button>
+          <button class="ghostButton" id="mailCrmBtn">Maila CRM</button>
+        </div>
+      </section>
+
+      <section class="sheetSection">
+        <div class="sectionMiniHead">Samtal</div>
+        <div class="outcomeGrid" id="outcomeGrid">
+          <button class="outcomeButton" data-outcome="Svarade">Svarade</button>
+          <button class="outcomeButton" data-outcome="Inget svar">Inget svar</button>
+          <button class="outcomeButton" data-outcome="Upptaget">Upptaget</button>
+          <button class="outcomeButton" data-outcome="Återkom senare">Återkom senare</button>
+          <button class="outcomeButton" data-outcome="Fel nummer">Fel nummer</button>
+          <button class="outcomeButton" data-outcome="Bokat möte">Bokat möte</button>
+          <button class="outcomeButton" data-outcome="Skicka mail">Skicka mail</button>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
