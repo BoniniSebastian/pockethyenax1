@@ -1,262 +1,818 @@
-<!DOCTYPE html>
-<html lang="sv">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-  />
-  <title>PHX1</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="bgBlob blobA"></div>
-  <div class="bgBlob blobB"></div>
-  <div class="bgBlob blobC"></div>
+:root{
+  --bg:#030b13;
+  --bg2:#04111d;
+  --panel:rgba(255,255,255,.055);
+  --panel2:rgba(255,255,255,.04);
+  --line:rgba(255,255,255,.11);
+  --text:rgba(255,255,255,.96);
+  --muted:rgba(255,255,255,.62);
+  --cyan:#22d3ee;
+  --pink:#e879f9;
+  --orange:#ff7a00;
+  --yellow:#ffd67a;
+  --green:#77f2bc;
+  --red:#ff7b9c;
+  --radius:18px;
+  --radiusLg:24px;
+  --safeTop:env(safe-area-inset-top);
+  --safeBottom:env(safe-area-inset-bottom);
+}
 
-  <main class="appShell">
-    <header class="topBar">
-      <div>
-        <div class="eyebrow">PocketHyenaX1</div>
-        <h1>PHX1</h1>
-      </div>
-      <div class="topBarRight">
-        <button class="iconButton" id="refreshBtn" title="Uppdatera">↻</button>
-      </div>
-    </header>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
 
-    <section class="statsRow">
-      <article class="statCard">
-        <span class="statLabel">Samtal idag</span>
-        <strong class="statValue" id="callsToday">0</strong>
-      </article>
+html,body{
+  margin:0;
+  min-height:100%;
+  background:
+    radial-gradient(circle at top left, rgba(34,211,238,.08), transparent 25%),
+    linear-gradient(180deg, var(--bg) 0%, #010814 100%);
+  color:var(--text);
+  font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
 
-      <article class="statCard">
-        <span class="statLabel">Svar idag</span>
-        <strong class="statValue" id="answersToday">0</strong>
-      </article>
-    </section>
+body{
+  overflow-x:hidden;
+}
 
-    <section class="quickTools">
-      <button class="toolChip active" data-panel-target="analysisPanel">Analys</button>
-      <button class="toolChip" data-panel-target="managePanel">Hantera kort</button>
-      <button class="toolChip" data-panel-target="backupPanel">Backup</button>
-      <button class="toolChip" data-panel-target="surprisePanel">Överraska mig</button>
-    </section>
+button,
+input,
+textarea,
+select{
+  font:inherit;
+  color:inherit;
+}
 
-    <section class="panelBlock active" id="analysisPanel">
-      <div class="panelHead">
-        <h2>Analys</h2>
-        <button class="ghostButton" id="toggleTenDaysBtn">Visa 10 dagar</button>
-      </div>
+input,
+textarea,
+select{
+  font-size:16px;
+}
 
-      <div class="analysisSummary" id="analysisSummary"></div>
-      <div class="tenDaysWrap hidden" id="tenDaysWrap"></div>
-    </section>
+button{
+  border:0;
+  background:none;
+  cursor:pointer;
+}
 
-    <section class="panelBlock hidden" id="managePanel">
-      <div class="panelHead">
-        <h2>Hantera kort</h2>
-      </div>
+a{
+  color:inherit;
+  text-decoration:none;
+}
 
-      <form id="cardForm" class="manageForm">
-        <input type="hidden" id="cardFormId" />
+.bgBlob{
+  position:fixed;
+  border-radius:999px;
+  filter:blur(80px);
+  pointer-events:none;
+  z-index:0;
+  opacity:.55;
+}
 
-        <div class="formGrid">
-          <label class="field">
-            <span>Namn</span>
-            <input id="formName" type="text" placeholder="Kontakt / kund" required />
-          </label>
+.blobA{
+  width:260px;
+  height:260px;
+  left:-70px;
+  top:60px;
+  background:radial-gradient(circle at center, rgba(34,211,238,.9) 0%, rgba(34,211,238,.15) 46%, transparent 70%);
+}
 
-          <label class="field">
-            <span>Telefonnummer</span>
-            <input id="formPhone" type="text" placeholder="070..." />
-          </label>
+.blobB{
+  width:320px;
+  height:320px;
+  right:-110px;
+  bottom:20px;
+  background:radial-gradient(circle at center, rgba(232,121,249,.85) 0%, rgba(232,121,249,.18) 40%, transparent 70%);
+}
 
-          <label class="field">
-            <span>E-post</span>
-            <input id="formEmail" type="email" placeholder="mail@kund.se" />
-          </label>
+.blobC{
+  width:240px;
+  height:240px;
+  right:16%;
+  top:140px;
+  background:radial-gradient(circle at center, rgba(255,122,0,.35) 0%, rgba(255,122,0,.10) 42%, transparent 70%);
+  opacity:.35;
+}
 
-          <label class="field">
-            <span>VNR</span>
-            <input id="formVnr" type="text" placeholder="VNR" />
-          </label>
+.appShell{
+  position:relative;
+  z-index:1;
+  width:min(980px, 100%);
+  margin:0 auto;
+  padding:
+    calc(16px + var(--safeTop))
+    14px
+    calc(32px + var(--safeBottom));
+}
 
-          <label class="field">
-            <span>Länk</span>
-            <input id="formLink" type="url" placeholder="https://..." />
-          </label>
+.topBar{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:16px;
+}
 
-          <label class="field">
-            <span>Status</span>
-            <input id="formStatus" type="text" placeholder="Ej prospekterad / Bokat möte..." />
-          </label>
-        </div>
+.topBarRight{
+  display:flex;
+  gap:8px;
+}
 
-        <label class="field">
-          <span>Viktig information</span>
-          <input id="formImportantInfo" type="text" placeholder="Få tag på honom vecka 12" />
-        </label>
+.eyebrow{
+  font-size:12px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:4px;
+}
 
-        <label class="field">
-          <span>Anteckningar</span>
-          <textarea id="formNotes" rows="4" placeholder="Interna anteckningar..."></textarea>
-        </label>
+h1{
+  margin:0;
+  font-size:34px;
+  line-height:1;
+}
 
-        <div class="formActions">
-          <button type="submit" class="primaryButton" id="saveCardBtn">Spara kort</button>
-          <button type="button" class="ghostButton" id="resetCardFormBtn">Nytt kort</button>
-        </div>
-      </form>
+h2{
+  margin:0;
+  font-size:18px;
+  line-height:1.2;
+}
 
-      <div class="manageList" id="manageList"></div>
-    </section>
+.iconButton{
+  min-width:38px;
+  height:38px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  color:var(--text);
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  box-shadow:0 8px 24px rgba(0,0,0,.22);
+}
 
-    <section class="panelBlock hidden" id="backupPanel">
-      <div class="panelHead">
-        <h2>Backup</h2>
-      </div>
+.statsRow{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:14px;
+}
 
-      <div class="backupActions">
-        <button class="primaryButton" id="exportJsonBtn">Exportera JSON-backup</button>
-        <button class="ghostButton" id="exportCsvBtn">Exportera samtalslogg CSV</button>
-      </div>
+.statCard{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:14px;
+  box-shadow:0 12px 30px rgba(0,0,0,.24);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
 
-      <div class="importWrap">
-        <label class="field">
-          <span>Importera JSON-backup</span>
-          <input id="importJsonInput" type="file" accept=".json,application/json" />
-        </label>
-      </div>
+.statLabel{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:8px;
+}
 
-      <p class="helperText">
-        Import lägger in kort och logg från backupfilen. Kör försiktigt på riktig data.
-      </p>
-    </section>
+.statValue{
+  display:block;
+  font-size:34px;
+  line-height:1;
+}
 
-    <section class="panelBlock hidden" id="surprisePanel">
-      <div class="panelHead">
-        <h2>Överraska mig</h2>
-      </div>
-      <div class="surpriseCard" id="surpriseCard">
-        Tryck på knappen nedan för att få ett slumpat kort.
-      </div>
-      <button class="primaryButton" id="surpriseBtn">Välj slumpkort</button>
-    </section>
+.quickTools{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:14px;
+}
 
-    <section class="listHead">
-      <h2>Kort</h2>
+.toolChip{
+  padding:0;
+  color:var(--muted);
+  font-size:14px;
+  position:relative;
+}
 
-      <div class="filterRow" id="filterRow">
-        <button class="filterButton active" data-filter="all">Alla</button>
-        <button class="filterButton" data-filter="unprospected">Ej prospekterad</button>
-      </div>
-    </section>
+.toolChip::after{
+  content:"";
+  display:block;
+  height:2px;
+  margin-top:4px;
+  background:transparent;
+  border-radius:999px;
+}
 
-    <section id="cards" class="cardsList"></section>
+.toolChip.active{
+  color:var(--text);
+  text-shadow:0 0 12px rgba(34,211,238,.25);
+}
 
-    <section class="listHead logHead">
-      <h2>Logg</h2>
-    </section>
+.toolChip.active::after{
+  background:linear-gradient(90deg, var(--cyan), var(--pink));
+  box-shadow:0 0 12px rgba(34,211,238,.35);
+}
 
-    <section id="log" class="logList"></section>
-  </main>
+.panelBlock{
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:22px;
+  padding:14px;
+  margin-bottom:14px;
+  box-shadow:0 12px 30px rgba(0,0,0,.18);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
 
-  <div class="sheetOverlay" id="sheetOverlay"></div>
+.panelBlock.hidden{
+  display:none;
+}
 
-  <aside class="bottomSheet" id="bottomSheet" aria-hidden="true">
-    <div class="sheetHandleWrap">
-      <button class="sheetClose" id="closeSheetBtn" aria-label="Stäng">✕</button>
-      <div class="sheetHandle"></div>
-    </div>
+.panelHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
 
-    <div class="sheetContent" id="sheetContent">
-      <div class="sheetTop">
-        <div class="sheetEyebrow" id="sheetImportantInfo"></div>
-        <h3 class="sheetName" id="sheetName">Kontakt</h3>
-        <div class="sheetStatus" id="sheetStatus"></div>
-      </div>
+.analysisSummary{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+}
 
-      <section class="sheetSection accordion">
-        <button class="accordionHeader" data-accordion-toggle="contactInfoBody">
-          <span>Kontakt</span>
-          <span class="accordionArrow">⌄</span>
-        </button>
+.dayCard{
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:18px;
+  padding:12px;
+}
 
-        <div class="accordionBody open" id="contactInfoBody">
-          <div class="fieldStack">
-            <label class="field">
-              <span>Namn</span>
-              <input id="sheetNameInput" type="text" />
-            </label>
+.dayLabel{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:8px;
+}
 
-            <label class="field">
-              <span>Telefonnummer</span>
-              <input id="sheetPhoneInput" type="text" />
-            </label>
+.dayStats{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
 
-            <label class="field">
-              <span>E-post</span>
-              <input id="sheetEmailInput" type="email" />
-            </label>
+.dayStats span{
+  font-size:14px;
+}
 
-            <label class="field">
-              <span>VNR</span>
-              <input id="sheetVnrInput" type="text" />
-            </label>
+.tenDaysWrap{
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
 
-            <label class="field">
-              <span>Länk</span>
-              <input id="sheetLinkInput" type="url" />
-            </label>
+.tenDaysWrap.hidden{
+  display:none;
+}
 
-            <label class="field">
-              <span>Viktig information</span>
-              <input id="sheetImportantInfoInput" type="text" />
-            </label>
+.tenDayRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border-radius:16px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);
+  font-size:14px;
+}
 
-            <label class="field">
-              <span>Status</span>
-              <input id="sheetStatusInput" type="text" />
-            </label>
-          </div>
+.tenDayMeta{
+  color:var(--muted);
+  font-size:13px;
+}
 
-          <div class="sheetLinkRow">
-            <a id="sheetPhoneLink" class="sheetActionLink" href="#">Ring</a>
-            <a id="sheetOpenLink" class="sheetActionLink" href="#" target="_blank" rel="noopener noreferrer">Öppna länk</a>
-          </div>
+.listHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+  padding:0 2px;
+}
 
-          <button class="primaryButton" id="saveContactInfoBtn">Spara kontaktinfo</button>
-        </div>
-      </section>
+.logHead{
+  margin-top:8px;
+}
 
-      <section class="sheetSection">
-        <div class="sectionMiniHead">Anteckningar</div>
-        <label class="field">
-          <textarea id="sheetNotesInput" rows="5" placeholder="Anteckningar..."></textarea>
-        </label>
-        <div class="rowActions">
-          <button class="primaryButton" id="saveNotesBtn">Spara anteckningar</button>
-          <button class="ghostButton" id="mailCrmBtn">Maila CRM</button>
-        </div>
-      </section>
+.filterRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+}
 
-      <section class="sheetSection">
-        <div class="sectionMiniHead">Samtal</div>
-        <div class="outcomeGrid" id="outcomeGrid">
-          <button class="outcomeButton" data-outcome="Svarade">Svarade</button>
-          <button class="outcomeButton" data-outcome="Inget svar">Inget svar</button>
-          <button class="outcomeButton" data-outcome="Upptaget">Upptaget</button>
-          <button class="outcomeButton" data-outcome="Återkom senare">Återkom senare</button>
-          <button class="outcomeButton" data-outcome="Fel nummer">Fel nummer</button>
-          <button class="outcomeButton" data-outcome="Bokat möte">Bokat möte</button>
-          <button class="outcomeButton" data-outcome="Skicka mail">Skicka mail</button>
-        </div>
-      </section>
-    </div>
-  </aside>
+.filterButton{
+  padding:0;
+  color:var(--muted);
+  font-size:14px;
+  position:relative;
+}
 
-  <script type="module" src="app.js"></script>
-</body>
-</html>
+.filterButton::after{
+  content:"";
+  display:block;
+  height:2px;
+  margin-top:4px;
+  background:transparent;
+  border-radius:999px;
+}
+
+.filterButton.active{
+  color:var(--text);
+  text-shadow:0 0 10px rgba(232,121,249,.25);
+}
+
+.filterButton.active::after{
+  background:linear-gradient(90deg, var(--pink), var(--orange));
+}
+
+.cardsList,
+.logList,
+.manageList{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.card{
+  position:relative;
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.035));
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:22px;
+  padding:14px;
+  box-shadow:0 12px 30px rgba(0,0,0,.22);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+.cardTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.cardInfoLine{
+  font-size:13px;
+  color:var(--yellow);
+  margin-bottom:6px;
+}
+
+.cardName{
+  font-size:22px;
+  font-weight:800;
+  line-height:1.1;
+  margin-bottom:8px;
+}
+
+.cardLinks{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:8px;
+}
+
+.cardLink{
+  font-size:14px;
+  color:var(--cyan);
+  text-shadow:0 0 10px rgba(34,211,238,.25);
+}
+
+.cardStatus{
+  font-size:13px;
+  color:var(--pink);
+  text-shadow:0 0 12px rgba(232,121,249,.28);
+}
+
+.cardBulb{
+  flex:0 0 auto;
+  font-size:18px;
+  line-height:1;
+  color:var(--yellow);
+  filter:drop-shadow(0 0 8px rgba(255,214,122,.35));
+}
+
+.cardActionsMini{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.miniText{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.logItem{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  padding:12px;
+  box-shadow:0 10px 24px rgba(0,0,0,.16);
+}
+
+.logName{
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+
+.logMeta{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.deleteLogBtn{
+  flex:0 0 auto;
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  color:var(--red);
+  border:1px solid rgba(255,123,156,.22);
+  background:rgba(255,123,156,.06);
+}
+
+.emptyState{
+  padding:18px;
+  border-radius:18px;
+  border:1px dashed rgba(255,255,255,.14);
+  color:var(--muted);
+  background:rgba(255,255,255,.03);
+}
+
+.manageForm{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-bottom:16px;
+}
+
+.formGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.field span{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.field input,
+.field textarea{
+  width:100%;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.05);
+  border-radius:16px;
+  padding:12px 13px;
+  outline:none;
+}
+
+.field input:focus,
+.field textarea:focus{
+  border-color:rgba(34,211,238,.45);
+  box-shadow:0 0 0 1px rgba(34,211,238,.18);
+}
+
+.formActions,
+.rowActions,
+.backupActions,
+.sheetLinkRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.primaryButton,
+.ghostButton,
+.sheetActionLink{
+  min-height:42px;
+  padding:10px 14px;
+  border-radius:14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.10);
+}
+
+.primaryButton{
+  color:#03111a;
+  background:linear-gradient(90deg, var(--cyan), #7bf1ff);
+  font-weight:700;
+  box-shadow:0 10px 24px rgba(34,211,238,.18);
+}
+
+.ghostButton,
+.sheetActionLink{
+  color:var(--text);
+  background:rgba(255,255,255,.05);
+}
+
+.helperText{
+  color:var(--muted);
+  font-size:13px;
+  margin:10px 0 0;
+}
+
+.manageCard{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px;
+  border-radius:18px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.07);
+}
+
+.manageCardName{
+  font-weight:700;
+  margin-bottom:4px;
+}
+
+.manageCardMeta{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.manageCardActions{
+  display:flex;
+  gap:8px;
+}
+
+.smallGhostButton,
+.smallDangerButton{
+  min-width:36px;
+  height:36px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.05);
+  display:grid;
+  place-items:center;
+}
+
+.smallDangerButton{
+  color:var(--red);
+  border-color:rgba(255,123,156,.22);
+}
+
+.surpriseCard{
+  border-radius:18px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+  padding:14px;
+  margin-bottom:12px;
+  min-height:72px;
+}
+
+.sheetOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.42);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .22s ease;
+  z-index:30;
+}
+
+.sheetOverlay.open{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.bottomSheet{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  transform:translateY(105%);
+  transition:transform .26s ease;
+  z-index:40;
+  background:linear-gradient(180deg, rgba(6,14,23,.98), rgba(3,9,16,.98));
+  border-top-left-radius:26px;
+  border-top-right-radius:26px;
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 -20px 40px rgba(0,0,0,.35);
+  max-height:min(88vh, 820px);
+}
+
+.bottomSheet.open{
+  transform:translateY(0);
+}
+
+.sheetHandleWrap{
+  position:sticky;
+  top:0;
+  padding:10px 14px 0;
+  background:linear-gradient(180deg, rgba(6,14,23,.98), rgba(6,14,23,.92));
+  border-top-left-radius:26px;
+  border-top-right-radius:26px;
+  z-index:2;
+}
+
+.sheetClose{
+  position:absolute;
+  right:14px;
+  top:10px;
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.05);
+}
+
+.sheetHandle{
+  width:52px;
+  height:5px;
+  border-radius:999px;
+  background:rgba(255,255,255,.20);
+  margin:4px auto 10px;
+}
+
+.sheetContent{
+  overflow:auto;
+  padding:8px 14px calc(18px + var(--safeBottom));
+}
+
+.sheetTop{
+  margin-bottom:14px;
+  padding-right:44px;
+}
+
+.sheetEyebrow{
+  min-height:18px;
+  color:var(--yellow);
+  font-size:13px;
+  margin-bottom:6px;
+}
+
+.sheetName{
+  margin:0 0 8px;
+  font-size:26px;
+  line-height:1.1;
+}
+
+.sheetStatus{
+  color:var(--pink);
+  font-size:13px;
+  text-shadow:0 0 12px rgba(232,121,249,.28);
+}
+
+.sheetSection{
+  padding:12px 0;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+.sectionMiniHead{
+  font-size:14px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.accordionHeader{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0;
+  color:var(--text);
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.accordionArrow{
+  color:var(--muted);
+}
+
+.accordionBody{
+  display:none;
+}
+
+.accordionBody.open{
+  display:block;
+}
+
+.fieldStack{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.outcomeGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.outcomeButton{
+  min-height:46px;
+  padding:10px 12px;
+  border-radius:16px;
+  color:var(--text);
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10);
+}
+
+.outcomeButton:hover{
+  border-color:rgba(34,211,238,.30);
+}
+
+.hidden{
+  display:none !important;
+}
+
+@media (min-width:920px){
+  .bottomSheet{
+    left:auto;
+    right:18px;
+    width:min(560px, calc(100vw - 36px));
+    bottom:18px;
+    border-radius:26px;
+    transform:translateY(120%);
+  }
+
+  .sheetHandleWrap{
+    border-radius:26px 26px 0 0;
+  }
+}
+
+@media (max-width:760px){
+  .analysisSummary{
+    grid-template-columns:1fr;
+  }
+
+  .formGrid{
+    grid-template-columns:1fr;
+  }
+
+  .outcomeGrid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .cardName{
+    font-size:20px;
+  }
+
+  .statValue{
+    font-size:30px;
+  }
+}
+
+@media (max-width:480px){
+  .appShell{
+    padding:
+      calc(14px + var(--safeTop))
+      12px
+      calc(28px + var(--safeBottom));
+  }
+
+  h1{
+    font-size:30px;
+  }
+
+  .statsRow{
+    gap:8px;
+  }
+
+  .statCard{
+    padding:12px;
+  }
+
+  .panelBlock{
+    padding:12px;
+  }
+
+  .outcomeGrid{
+    grid-template-columns:1fr;
+  }
+}
