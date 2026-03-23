@@ -1,1 +1,53 @@
-.keep
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
+  <title>PHX1</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bgBlob blob1"></div>
+  <div class="bgBlob blob2"></div>
+
+  <main class="appShell">
+    <header class="topBar">
+      <div>
+        <div class="eyebrow">PocketHyenaX1</div>
+        <h1>PHX1</h1>
+      </div>
+    </header>
+
+    <section class="statsRow">
+      <article class="statCard">
+        <span class="statLabel">Samtal idag</span>
+        <strong class="statValue" id="callsToday">0</strong>
+      </article>
+
+      <article class="statCard">
+        <span class="statLabel">Svar idag</span>
+        <strong class="statValue" id="answersToday">0</strong>
+      </article>
+    </section>
+
+    <section class="sectionBlock">
+      <div class="sectionHead">
+        <h2>Kort</h2>
+      </div>
+      <div id="cards" class="cardsList"></div>
+    </section>
+
+    <section class="sectionBlock">
+      <div class="sectionHead">
+        <h2>Logg</h2>
+      </div>
+      <div id="log" class="logList"></div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
