@@ -16,13 +16,19 @@ import {
 const cardsEl = document.getElementById("cards");
 const callsTodayEl = document.getElementById("callsToday");
 const answersTodayEl = document.getElementById("answersToday");
-
 const refreshBtn = document.getElementById("refreshBtn");
-
-const toolChips = [...document.querySelectorAll(".toolChip")];
-const panelBlocks = [...document.querySelectorAll(".panelBlock")];
+const globalOverlay = document.getElementById("globalOverlay");
 
 const filterButtons = [...document.querySelectorAll(".filterButton")];
+const modalOpenButtons = [...document.querySelectorAll("[data-modal-open]")];
+const modalCloseButtons = [...document.querySelectorAll("[data-modal-close]")];
+const importModeButtons = [...document.querySelectorAll(".importModeBtn")];
+
+const analysisModal = document.getElementById("analysisModal");
+const manageModal = document.getElementById("manageModal");
+const backupModal = document.getElementById("backupModal");
+const generalNoteModal = document.getElementById("generalNoteModal");
+const bottomSheet = document.getElementById("bottomSheet");
 
 const analysisDaysEl = document.getElementById("analysisDays");
 const analysisTenDaysEl = document.getElementById("analysisTenDays");
@@ -53,14 +59,11 @@ const generalNoteInput = document.getElementById("generalNoteInput");
 const saveGeneralNoteBtn = document.getElementById("saveGeneralNoteBtn");
 const copyGeneralNoteBtn = document.getElementById("copyGeneralNoteBtn");
 
-const bottomSheet = document.getElementById("bottomSheet");
-const sheetOverlay = document.getElementById("sheetOverlay");
 const closeSheetBtn = document.getElementById("closeSheetBtn");
-
 const sheetImportantInfo = document.getElementById("sheetImportantInfo");
 const sheetName = document.getElementById("sheetName");
 const sheetContactPreview = document.getElementById("sheetContactPreview");
-const sheetStatus = document.getElementById("sheetStatus");
+const sheetStatusBadge = document.getElementById("sheetStatusBadge");
 
 const sheetNameInput = document.getElementById("sheetNameInput");
 const sheetContactPersonInput = document.getElementById("sheetContactPersonInput");
@@ -78,18 +81,13 @@ const sheetOpenLink = document.getElementById("sheetOpenLink");
 const saveContactInfoBtn = document.getElementById("saveContactInfoBtn");
 const saveNotesBtn = document.getElementById("saveNotesBtn");
 const mailCrmBtn = document.getElementById("mailCrmBtn");
-const markProspectedBtn = document.getElementById("markProspectedBtn");
+const toggleProspectedBtn = document.getElementById("toggleProspectedBtn");
+const openGeneralNoteFromCardBtn = document.getElementById("openGeneralNoteFromCardBtn");
 
 const startLogCallBtn = document.getElementById("startLogCallBtn");
 const callStepPrimary = document.getElementById("callStepPrimary");
 const callStepSecondary = document.getElementById("callStepSecondary");
-
 const customerLogList = document.getElementById("customerLogList");
-
-const sheetGeneralNoteInput = document.getElementById("sheetGeneralNoteInput");
-const saveGeneralNoteFromCardBtn = document.getElementById("saveGeneralNoteFromCardBtn");
-const copyGeneralNoteFromCardBtn = document.getElementById("copyGeneralNoteFromCardBtn");
-const openGeneralNoteFromCardBtn = document.getElementById("openGeneralNoteFromCardBtn");
 
 let cardsCache = [];
 let logCache = [];
@@ -98,7 +96,7 @@ let currentCardId = null;
 let currentFilter = "all";
 let tenDaysVisible = false;
 let selectedPrimaryOutcome = null;
-let selectedSecondaryOutcome = null;
+let importMode = "append";
 
 function escapeHtml(value = "") {
   return String(value)
@@ -137,11 +135,6 @@ function normalizeLog(raw = {}, id = "") {
   };
 }
 
-function getNotesPreview(notes = "") {
-  const firstLine = String(notes).split("\n").find(line => line.trim());
-  return firstLine ? firstLine.trim() : "";
-}
-
 function formatDateTime(dateString) {
   const d = new Date(dateString);
   return d.toLocaleString("sv-SE", {
@@ -150,15 +143,6 @@ function formatDateTime(dateString) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit"
-  });
-}
-
-function formatDateOnly(dateString) {
-  const d = new Date(dateString);
-  return d.toLocaleDateString("sv-SE", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
   });
 }
 
@@ -200,27 +184,58 @@ function getRelativeDayLabel(offsetDays = 0) {
   return formatShortDate(getRelativeDayKey(offsetDays));
 }
 
+function getNotesPreview(notes = "") {
+  const firstLine = String(notes).split("\n").find(line => line.trim());
+  return firstLine ? firstLine.trim() : "";
+}
+
 function getCurrentCard() {
   return cardsCache.find(card => card.id === currentCardId) || null;
 }
 
-function setActivePanel(panelId = null) {
-  toolChips.forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.panelTarget === panelId);
-  });
+function getCardLastLog(cardId) {
+  return logCache
+    .filter(item => item.cardId === cardId)
+    .sort((a, b) => new Date(b.time) - new Date(a.time))[0] || null;
+}
 
-  panelBlocks.forEach(panel => {
-    panel.classList.toggle("hidden", panel.id !== panelId);
+function openOverlay() {
+  globalOverlay.classList.remove("hidden");
+}
+
+function closeOverlayIfNothingOpen() {
+  const anyOpen = !analysisModal.classList.contains("hidden")
+    || !manageModal.classList.contains("hidden")
+    || !backupModal.classList.contains("hidden")
+    || !generalNoteModal.classList.contains("hidden")
+    || !bottomSheet.classList.contains("hidden");
+
+  globalOverlay.classList.toggle("hidden", !anyOpen);
+}
+
+function openModal(modal) {
+  openOverlay();
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeModal(modal) {
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+  closeOverlayIfNothingOpen();
+}
+
+function closeAllMainModals() {
+  [analysisModal, manageModal, backupModal, generalNoteModal].forEach(modal => {
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
   });
+  closeOverlayIfNothingOpen();
 }
 
 function setFilter(filter) {
   currentFilter = filter;
-
-  filterButtons.forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.filter === filter);
-  });
-
+  filterButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.filter === filter));
   renderCards();
 }
 
@@ -228,7 +243,7 @@ function getFilteredCards() {
   let list = [...cardsCache];
 
   if (currentFilter === "unprospected") {
-    list = list.filter(card => (card.status || "").trim().toLowerCase() === "ej prospekterad");
+    list = list.filter(card => (card.status || "").trim().toLowerCase() !== "prospekterad");
   }
 
   if (currentFilter === "prospected") {
@@ -248,21 +263,14 @@ function renderCards() {
   const list = getFilteredCards();
 
   if (!list.length) {
-    cardsEl.innerHTML = `
-      <div class="emptyState">
-        Inga säljkort att visa.
-      </div>
-    `;
+    cardsEl.innerHTML = `<div class="emptyState">Inga säljkort att visa.</div>`;
     return;
   }
 
   cardsEl.innerHTML = list.map(card => {
-    const importantInfoHtml = card.importantInfo
-      ? `<div class="cardInfoLine">${escapeHtml(card.importantInfo)}</div>`
-      : `<div class="cardInfoLine"></div>`;
-
-    const notePreview = getNotesPreview(card.notes) || "";
+    const lastLog = getCardLastLog(card.id);
     const contactPreview = card.contactPerson || "Kontakt saknas";
+    const notesPreview = getNotesPreview(card.notes) || "Ingen anteckning ännu";
 
     const linkHtml = card.link
       ? `<a class="cardLink" href="${escapeHtml(card.link)}" target="_blank" rel="noopener noreferrer">Öppna länk</a>`
@@ -272,26 +280,33 @@ function renderCards() {
       ? `<a class="cardLink" href="tel:${escapeHtml(card.phone)}">${escapeHtml(card.phone)}</a>`
       : "";
 
+    const statusCorner = card.status
+      ? `<div class="cardStatusCorner">${escapeHtml(card.status)}</div>`
+      : "";
+
+    const lastActivity = lastLog
+      ? `<div class="cardLastActivity">📞 ${escapeHtml(lastLog.outcome)} • ${escapeHtml(formatDateTime(lastLog.time))}</div>`
+      : `<div class="cardLastActivity"></div>`;
+
     return `
-      <article class="card ${card.highlighted ? "highlighted" : ""}" data-card-id="${escapeHtml(card.id)}">
-        ${importantInfoHtml}
-        <div class="cardTopRow">
+      <article class="card" data-card-id="${escapeHtml(card.id)}">
+        ${statusCorner}
+        <div class="cardInfoLine">${escapeHtml(card.importantInfo || "")}</div>
+
+        <div class="cardTitleRow">
           <div class="cardName">${escapeHtml(card.name || "Namnlös organisation")}</div>
-          <button class="cardBulbButton" data-highlight-id="${escapeHtml(card.id)}" title="Highlighta">💡</button>
+          <button class="cardBulbButton ${card.highlighted ? "active" : ""}" data-highlight-id="${escapeHtml(card.id)}" title="Highlighta">💡</button>
         </div>
 
         <div class="cardContactPerson">${escapeHtml(contactPreview)}</div>
-        <div class="cardNotePreview">${escapeHtml(notePreview || "Ingen anteckning ännu")}</div>
+        <div class="cardNotePreview">${escapeHtml(notesPreview)}</div>
 
         <div class="cardLinks">
           ${linkHtml}
           ${phoneHtml}
         </div>
 
-        <div class="cardBottomRow">
-          <div class="cardStatus">${escapeHtml(card.status || "")}</div>
-          <button class="cardQuickAction" data-prospect-id="${escapeHtml(card.id)}">Prospekterad</button>
-        </div>
+        ${lastActivity}
       </article>
     `;
   }).join("");
@@ -301,8 +316,8 @@ function updateStats() {
   const todayKey = getTodayKey();
   const todaysLogs = logCache.filter(item => isSameDateKey(item.time, todayKey));
   const todaysAnswers = todaysLogs.filter(item => {
-    const outcome = (item.outcome || "").trim().toLowerCase();
-    return outcome === "svarade" || outcome === "bokat möte" || outcome === "ej intresserad";
+    const o = (item.outcome || "").toLowerCase();
+    return o === "bokat möte" || o === "ej intresserad";
   });
 
   callsTodayEl.textContent = String(todaysLogs.length);
@@ -312,8 +327,8 @@ function updateStats() {
 function getStatsForDateKey(key) {
   const dayLogs = logCache.filter(item => isSameDateKey(item.time, key));
   const answers = dayLogs.filter(item => {
-    const outcome = (item.outcome || "").trim().toLowerCase();
-    return outcome === "svarade" || outcome === "bokat möte" || outcome === "ej intresserad";
+    const o = (item.outcome || "").toLowerCase();
+    return o === "bokat möte" || o === "ej intresserad";
   }).length;
 
   return {
@@ -328,7 +343,6 @@ function renderAnalysisDays() {
   analysisDaysEl.innerHTML = offsets.map(offset => {
     const key = getRelativeDayKey(offset);
     const stats = getStatsForDateKey(key);
-
     return `
       <button class="dayCard" data-analysis-day="${escapeHtml(key)}">
         <div class="dayLabel">${getRelativeDayLabel(offset)}</div>
@@ -344,7 +358,6 @@ function renderAnalysisDays() {
   for (let i = 0; i < 10; i += 1) {
     const key = getRelativeDayKey(i);
     const stats = getStatsForDateKey(key);
-
     rows.push(`
       <button class="tenDayRow" data-analysis-day="${escapeHtml(key)}">
         <div>${i === 0 ? "Idag" : i === 1 ? "Igår" : formatShortDate(key)}</div>
@@ -360,7 +373,6 @@ function renderAnalysisDays() {
 
 function renderAnalysisDetail(dayKey) {
   const dayLogs = logCache.filter(item => isSameDateKey(item.time, dayKey));
-
   analysisDetailEl.classList.remove("hidden");
   analysisDetailTitleEl.textContent = `Logg ${dayKey}`;
 
@@ -393,7 +405,6 @@ function renderManageList() {
         <div class="manageCardName">${escapeHtml(card.name || "Namnlös organisation")}</div>
         <div class="manageCardMeta">${escapeHtml(card.contactPerson || "Kontakt saknas")} • ${escapeHtml(card.status || "Ingen status")}</div>
       </div>
-
       <div class="rowActions">
         <button class="smallGhostButton" data-edit-card-id="${escapeHtml(card.id)}" title="Redigera">✎</button>
         <button class="smallDangerButton" data-delete-card-id="${escapeHtml(card.id)}" title="Ta bort">✕</button>
@@ -453,12 +464,17 @@ function openBottomSheet(cardId) {
   const card = cardsCache.find(item => item.id === cardId);
   if (!card) return;
 
+  closeAllMainModals();
+  openOverlay();
+
   currentCardId = card.id;
+  bottomSheet.classList.remove("hidden");
+  bottomSheet.setAttribute("aria-hidden", "false");
 
   sheetImportantInfo.textContent = card.importantInfo || "";
   sheetName.textContent = card.name || "Namnlös organisation";
   sheetContactPreview.textContent = card.contactPerson || "Kontakt saknas";
-  sheetStatus.textContent = card.status || "";
+  sheetStatusBadge.textContent = card.status || "";
 
   sheetNameInput.value = card.name || "";
   sheetContactPersonInput.value = card.contactPerson || "";
@@ -470,53 +486,45 @@ function openBottomSheet(cardId) {
   sheetStatusInput.value = card.status || "";
   sheetNotesInput.value = card.notes || "";
 
-  sheetGeneralNoteInput.value = generalNoteCache || "";
+  toggleProspectedBtn.textContent = (card.status || "").toLowerCase() === "prospekterad"
+    ? "Avmarkera prospekterad"
+    : "Markera prospekterad";
 
   if (card.phone) {
     sheetPhoneLink.href = `tel:${card.phone}`;
     sheetPhoneLink.classList.remove("hidden");
   } else {
-    sheetPhoneLink.href = "#";
     sheetPhoneLink.classList.add("hidden");
+    sheetPhoneLink.href = "#";
   }
 
   if (card.link) {
     sheetOpenLink.href = card.link;
     sheetOpenLink.classList.remove("hidden");
   } else {
-    sheetOpenLink.href = "#";
     sheetOpenLink.classList.add("hidden");
+    sheetOpenLink.href = "#";
   }
 
   resetCallLogFlow();
   renderCustomerLog(card.id);
-
-  bottomSheet.classList.add("open");
-  sheetOverlay.classList.add("open");
-  bottomSheet.setAttribute("aria-hidden", "false");
 }
 
 function closeBottomSheet() {
-  bottomSheet.classList.remove("open");
-  sheetOverlay.classList.remove("open");
+  bottomSheet.classList.add("hidden");
   bottomSheet.setAttribute("aria-hidden", "true");
   currentCardId = null;
+  closeOverlayIfNothingOpen();
   resetCallLogFlow();
 }
 
 function resetCallLogFlow() {
   selectedPrimaryOutcome = null;
-  selectedSecondaryOutcome = null;
   callStepPrimary.classList.add("hidden");
   callStepSecondary.classList.add("hidden");
 
-  document.querySelectorAll("[data-primary-outcome]").forEach(btn => {
-    btn.classList.remove("selected");
-  });
-
-  document.querySelectorAll("[data-secondary-outcome]").forEach(btn => {
-    btn.classList.remove("selected");
-  });
+  document.querySelectorAll("[data-primary-outcome]").forEach(btn => btn.classList.remove("selected"));
+  document.querySelectorAll("[data-secondary-outcome]").forEach(btn => btn.classList.remove("selected"));
 }
 
 function getCrmRecipient(vnr) {
@@ -528,6 +536,7 @@ function getCrmRecipient(vnr) {
 function buildCustomerMailBody(card, customerLogs) {
   const lines = [
     `Namn: ${card.name || ""}`,
+    `Pratat med: ${card.contactPerson || ""}`,
     `Telefonnummer: ${card.phone || ""}`,
     "",
     "Anteckningar:",
@@ -569,10 +578,8 @@ async function loadLog() {
 async function loadGeneralNote() {
   const ref = doc(db, "meta", "generalNote");
   const snap = await getDoc(ref);
-
   generalNoteCache = snap.exists() ? String(snap.data()?.content || "") : "";
   generalNoteInput.value = generalNoteCache;
-  sheetGeneralNoteInput.value = generalNoteCache;
 }
 
 async function refreshAll() {
@@ -589,15 +596,16 @@ async function toggleHighlight(cardId) {
   });
 
   await loadCards();
-
-  if (currentCardId === cardId) {
-    openBottomSheet(cardId);
-  }
 }
 
-async function markCardProspected(cardId) {
+async function toggleProspected(cardId) {
+  const card = cardsCache.find(item => item.id === cardId);
+  if (!card) return;
+
+  const nextStatus = (card.status || "").toLowerCase() === "prospekterad" ? "" : "Prospekterad";
+
   await updateDoc(doc(db, "cards", cardId), {
-    status: "Prospekterad",
+    status: nextStatus,
     updatedAt: new Date().toISOString()
   });
 
@@ -650,7 +658,6 @@ async function saveGeneralNote(content) {
 
   generalNoteCache = content;
   generalNoteInput.value = content;
-  sheetGeneralNoteInput.value = content;
 }
 
 async function createLog(card, outcome) {
@@ -666,7 +673,6 @@ async function createLog(card, outcome) {
       status: "Bokat möte",
       updatedAt: new Date().toISOString()
     });
-    await loadCards();
   }
 
   if (outcome === "Ej intresserad") {
@@ -674,10 +680,9 @@ async function createLog(card, outcome) {
       status: "Ej intresserad",
       updatedAt: new Date().toISOString()
     });
-    await loadCards();
   }
 
-  await loadLog();
+  await Promise.all([loadCards(), loadLog()]);
 
   if (currentCardId === card.id) {
     openBottomSheet(card.id);
@@ -752,6 +757,13 @@ function buildTemplateRows() {
   ];
 }
 
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(buildTemplateRows());
+  XLSX.utils.book_append_sheet(wb, ws, "Cards");
+  XLSX.writeFile(wb, "PHX1-mall.xlsx");
+}
+
 function exportWorkbook() {
   const cardsRows = cardsCache.map(card => ({
     name: card.name || "",
@@ -769,37 +781,31 @@ function exportWorkbook() {
   const logRows = logCache.map(item => ({
     name: item.name || "",
     outcome: item.outcome || "",
-    date: formatDateOnly(item.time),
-    time: formatDateTime(item.time),
+    datetime: formatDateTime(item.time),
     cardId: item.cardId || ""
   }));
 
   const wb = XLSX.utils.book_new();
   const wsCards = XLSX.utils.json_to_sheet(cardsRows.length ? cardsRows : buildTemplateRows());
-  const wsLog = XLSX.utils.json_to_sheet(logRows.length ? logRows : [{ name: "", outcome: "", date: "", time: "", cardId: "" }]);
+  const wsLog = XLSX.utils.json_to_sheet(logRows.length ? logRows : [{ name: "", outcome: "", datetime: "", cardId: "" }]);
 
   XLSX.utils.book_append_sheet(wb, wsCards, "Cards");
   XLSX.utils.book_append_sheet(wb, wsLog, "Logg");
   XLSX.writeFile(wb, `PHX1-export-${getTodayKey()}.xlsx`);
 }
 
-function downloadTemplate() {
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(buildTemplateRows());
-  XLSX.utils.book_append_sheet(wb, ws, "Cards");
-  XLSX.writeFile(wb, "PHX1-mall.xlsx");
-}
-
-async function overwriteCardsFromExcel(file) {
+async function importCardsFromExcel(file, mode) {
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-  const existingCards = await getDocs(collection(db, "cards"));
-  for (const snap of existingCards.docs) {
-    await deleteDoc(doc(db, "cards", snap.id));
+  if (mode === "replace") {
+    const existingCards = await getDocs(collection(db, "cards"));
+    for (const snap of existingCards.docs) {
+      await deleteDoc(doc(db, "cards", snap.id));
+    }
   }
 
   for (const row of rows) {
@@ -816,7 +822,7 @@ async function overwriteCardsFromExcel(file) {
       status: String(row.status || "").trim(),
       importantInfo: String(row.importantInfo || "").trim(),
       notes: String(row.notes || "").trim(),
-      highlighted: false,
+      highlighted: String(row.highlighted || "").trim().toLowerCase() === "true",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
@@ -849,7 +855,8 @@ function handleMailCrm() {
   const body = encodeURIComponent(buildCustomerMailBody({
     ...card,
     notes: sheetNotesInput.value.trim(),
-    phone: sheetPhoneInput.value.trim() || card.phone
+    phone: sheetPhoneInput.value.trim() || card.phone,
+    contactPerson: sheetContactPersonInput.value.trim() || card.contactPerson
   }, customerLogs));
 
   window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
@@ -859,11 +866,9 @@ function bindAccordion() {
   document.addEventListener("click", (event) => {
     const toggle = event.target.closest("[data-accordion-target]");
     if (!toggle) return;
-
     const targetId = toggle.dataset.accordionTarget;
     const body = document.getElementById(targetId);
     if (!body) return;
-
     body.classList.toggle("open");
   });
 }
@@ -871,11 +876,22 @@ function bindAccordion() {
 function bindEvents() {
   refreshBtn.addEventListener("click", refreshAll);
 
-  toolChips.forEach(btn => {
+  modalOpenButtons.forEach(btn => {
     btn.addEventListener("click", () => {
-      const isOpen = !document.getElementById(btn.dataset.panelTarget).classList.contains("hidden");
-      setActivePanel(isOpen ? null : btn.dataset.panelTarget);
+      closeAllMainModals();
+      openModal(document.getElementById(btn.dataset.modalOpen));
     });
+  });
+
+  modalCloseButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      closeModal(document.getElementById(btn.dataset.modalClose));
+    });
+  });
+
+  globalOverlay.addEventListener("click", () => {
+    closeAllMainModals();
+    closeBottomSheet();
   });
 
   filterButtons.forEach(btn => {
@@ -890,37 +906,28 @@ function bindEvents() {
       return;
     }
 
-    const prospectBtn = event.target.closest("[data-prospect-id]");
-    if (prospectBtn) {
-      event.stopPropagation();
-      await markCardProspected(prospectBtn.dataset.prospectId);
-      return;
-    }
-
     const cardEl = event.target.closest(".card");
     if (!cardEl) return;
 
     openBottomSheet(cardEl.dataset.cardId);
   });
 
+  toggleTenDaysBtn.addEventListener("click", () => {
+    tenDaysVisible = !tenDaysVisible;
+    analysisTenDaysEl.classList.toggle("hidden", !tenDaysVisible);
+    toggleTenDaysBtn.textContent = tenDaysVisible ? "Dölj 10 dagar" : "Visa 10 dagar";
+  });
+
   analysisDaysEl.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-analysis-day]");
     if (!btn) return;
-
     renderAnalysisDetail(btn.dataset.analysisDay);
   });
 
   analysisTenDaysEl.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-analysis-day]");
     if (!btn) return;
-
     renderAnalysisDetail(btn.dataset.analysisDay);
-  });
-
-  toggleTenDaysBtn.addEventListener("click", () => {
-    tenDaysVisible = !tenDaysVisible;
-    analysisTenDaysEl.classList.toggle("hidden", !tenDaysVisible);
-    toggleTenDaysBtn.textContent = tenDaysVisible ? "Dölj 10 dagar" : "Visa 10 dagar";
   });
 
   cardForm.addEventListener("submit", saveCardFromForm);
@@ -934,7 +941,6 @@ function bindEvents() {
       const card = cardsCache.find(item => item.id === editBtn.dataset.editCardId);
       if (card) {
         populateCardForm(card);
-        setActivePanel("managePanel");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
       return;
@@ -948,19 +954,30 @@ function bindEvents() {
   downloadTemplateBtn.addEventListener("click", downloadTemplate);
   exportExcelBtn.addEventListener("click", exportWorkbook);
 
+  importModeButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      importMode = btn.dataset.importMode;
+      importModeButtons.forEach(x => x.classList.toggle("active", x.dataset.importMode === importMode));
+    });
+  });
+
   importExcelInput.addEventListener("change", async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const ok = window.confirm("Detta skriver över alla befintliga kort. Fortsätta?");
+    let ok = true;
+    if (importMode === "replace") {
+      ok = window.confirm("Detta skriver över alla befintliga kort. Fortsätta?");
+    }
+
     if (!ok) {
       importExcelInput.value = "";
       return;
     }
 
     try {
-      await overwriteCardsFromExcel(file);
-      alert("Excel importerat.");
+      await importCardsFromExcel(file, importMode);
+      alert(importMode === "replace" ? "Excel importerat och ersatte korten." : "Excel importerat och lade till kort.");
     } catch (error) {
       console.error(error);
       alert("Import misslyckades.");
@@ -978,31 +995,21 @@ function bindEvents() {
   });
 
   closeSheetBtn.addEventListener("click", closeBottomSheet);
-  sheetOverlay.addEventListener("click", closeBottomSheet);
 
   saveContactInfoBtn.addEventListener("click", saveCurrentContactInfo);
   saveNotesBtn.addEventListener("click", saveCurrentNotes);
   mailCrmBtn.addEventListener("click", handleMailCrm);
 
-  markProspectedBtn.addEventListener("click", async () => {
+  toggleProspectedBtn.addEventListener("click", async () => {
     const card = getCurrentCard();
     if (!card) return;
-    await markCardProspected(card.id);
+    await toggleProspected(card.id);
   });
 
-  openGeneralNoteFromCardBtn.addEventListener("click", async () => {
-    setActivePanel("generalNotePanel");
-    generalNoteInput.value = generalNoteCache;
+  openGeneralNoteFromCardBtn.addEventListener("click", () => {
     closeBottomSheet();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-
-  saveGeneralNoteFromCardBtn.addEventListener("click", async () => {
-    await saveGeneralNote(sheetGeneralNoteInput.value);
-  });
-
-  copyGeneralNoteFromCardBtn.addEventListener("click", () => {
-    copyTextToClipboard(sheetGeneralNoteInput.value);
+    openModal(generalNoteModal);
+    generalNoteInput.value = generalNoteCache;
   });
 
   startLogCallBtn.addEventListener("click", () => {
@@ -1015,7 +1022,6 @@ function bindEvents() {
     if (!btn) return;
 
     selectedPrimaryOutcome = btn.dataset.primaryOutcome;
-
     document.querySelectorAll("[data-primary-outcome]").forEach(el => {
       el.classList.toggle("selected", el.dataset.primaryOutcome === selectedPrimaryOutcome);
     });
@@ -1037,32 +1043,29 @@ function bindEvents() {
     const btn = event.target.closest("[data-secondary-outcome]");
     if (!btn) return;
 
-    selectedSecondaryOutcome = btn.dataset.secondaryOutcome;
-
+    const secondary = btn.dataset.secondaryOutcome;
     document.querySelectorAll("[data-secondary-outcome]").forEach(el => {
-      el.classList.toggle("selected", el.dataset.secondaryOutcome === selectedSecondaryOutcome);
+      el.classList.toggle("selected", el.dataset.secondaryOutcome === secondary);
     });
 
     const card = getCurrentCard();
     if (!card) return;
 
-    await createLog(card, selectedSecondaryOutcome);
+    await createLog(card, secondary);
     resetCallLogFlow();
   });
 
   customerLogList.addEventListener("click", async (event) => {
     const deleteBtn = event.target.closest("[data-delete-log-id]");
     if (!deleteBtn) return;
-
     await deleteLogEntry(deleteBtn.dataset.deleteLogId);
     const card = getCurrentCard();
-    if (card) {
-      renderCustomerLog(card.id);
-    }
+    if (card) renderCustomerLog(card.id);
   });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
+      closeAllMainModals();
       closeBottomSheet();
     }
   });
@@ -1072,17 +1075,12 @@ function bindEvents() {
 
 async function init() {
   try {
-    setActivePanel(null);
     setFilter("all");
     await refreshAll();
     bindEvents();
   } catch (error) {
     console.error(error);
-    cardsEl.innerHTML = `
-      <div class="emptyState">
-        Kunde inte läsa från Firebase. Kontrollera Firestore och reglerna.
-      </div>
-    `;
+    cardsEl.innerHTML = `<div class="emptyState">Kunde inte läsa från Firebase. Kontrollera Firestore och reglerna.</div>`;
   }
 }
 
