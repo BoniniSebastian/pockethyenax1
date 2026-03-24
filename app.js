@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   setDoc,
   query,
   orderBy,
@@ -13,12 +14,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const cardsEl = document.getElementById("cards");
-const logEl = document.getElementById("log");
 const callsTodayEl = document.getElementById("callsToday");
 const answersTodayEl = document.getElementById("answersToday");
-const analysisSummaryEl = document.getElementById("analysisSummary");
-const tenDaysWrapEl = document.getElementById("tenDaysWrap");
-const toggleTenDaysBtn = document.getElementById("toggleTenDaysBtn");
+
 const refreshBtn = document.getElementById("refreshBtn");
 
 const toolChips = [...document.querySelectorAll(".toolChip")];
@@ -26,33 +24,17 @@ const panelBlocks = [...document.querySelectorAll(".panelBlock")];
 
 const filterButtons = [...document.querySelectorAll(".filterButton")];
 
-const bottomSheet = document.getElementById("bottomSheet");
-const sheetOverlay = document.getElementById("sheetOverlay");
-const closeSheetBtn = document.getElementById("closeSheetBtn");
-
-const sheetImportantInfo = document.getElementById("sheetImportantInfo");
-const sheetName = document.getElementById("sheetName");
-const sheetStatus = document.getElementById("sheetStatus");
-
-const sheetNameInput = document.getElementById("sheetNameInput");
-const sheetPhoneInput = document.getElementById("sheetPhoneInput");
-const sheetEmailInput = document.getElementById("sheetEmailInput");
-const sheetVnrInput = document.getElementById("sheetVnrInput");
-const sheetLinkInput = document.getElementById("sheetLinkInput");
-const sheetImportantInfoInput = document.getElementById("sheetImportantInfoInput");
-const sheetStatusInput = document.getElementById("sheetStatusInput");
-const sheetNotesInput = document.getElementById("sheetNotesInput");
-
-const saveContactInfoBtn = document.getElementById("saveContactInfoBtn");
-const saveNotesBtn = document.getElementById("saveNotesBtn");
-const mailCrmBtn = document.getElementById("mailCrmBtn");
-const sheetPhoneLink = document.getElementById("sheetPhoneLink");
-const sheetOpenLink = document.getElementById("sheetOpenLink");
-const outcomeGrid = document.getElementById("outcomeGrid");
+const analysisDaysEl = document.getElementById("analysisDays");
+const analysisTenDaysEl = document.getElementById("analysisTenDays");
+const analysisDetailEl = document.getElementById("analysisDetail");
+const analysisDetailTitleEl = document.getElementById("analysisDetailTitle");
+const analysisDetailListEl = document.getElementById("analysisDetailList");
+const toggleTenDaysBtn = document.getElementById("toggleTenDaysBtn");
 
 const cardForm = document.getElementById("cardForm");
 const cardFormId = document.getElementById("cardFormId");
 const formName = document.getElementById("formName");
+const formContactPerson = document.getElementById("formContactPerson");
 const formPhone = document.getElementById("formPhone");
 const formEmail = document.getElementById("formEmail");
 const formVnr = document.getElementById("formVnr");
@@ -63,28 +45,60 @@ const formNotes = document.getElementById("formNotes");
 const resetCardFormBtn = document.getElementById("resetCardFormBtn");
 const manageList = document.getElementById("manageList");
 
-const exportJsonBtn = document.getElementById("exportJsonBtn");
-const exportCsvBtn = document.getElementById("exportCsvBtn");
-const importJsonInput = document.getElementById("importJsonInput");
+const downloadTemplateBtn = document.getElementById("downloadTemplateBtn");
+const exportExcelBtn = document.getElementById("exportExcelBtn");
+const importExcelInput = document.getElementById("importExcelInput");
 
-const surpriseBtn = document.getElementById("surpriseBtn");
-const surpriseCard = document.getElementById("surpriseCard");
+const generalNoteInput = document.getElementById("generalNoteInput");
+const saveGeneralNoteBtn = document.getElementById("saveGeneralNoteBtn");
+const copyGeneralNoteBtn = document.getElementById("copyGeneralNoteBtn");
+
+const bottomSheet = document.getElementById("bottomSheet");
+const sheetOverlay = document.getElementById("sheetOverlay");
+const closeSheetBtn = document.getElementById("closeSheetBtn");
+
+const sheetImportantInfo = document.getElementById("sheetImportantInfo");
+const sheetName = document.getElementById("sheetName");
+const sheetContactPreview = document.getElementById("sheetContactPreview");
+const sheetStatus = document.getElementById("sheetStatus");
+
+const sheetNameInput = document.getElementById("sheetNameInput");
+const sheetContactPersonInput = document.getElementById("sheetContactPersonInput");
+const sheetPhoneInput = document.getElementById("sheetPhoneInput");
+const sheetEmailInput = document.getElementById("sheetEmailInput");
+const sheetVnrInput = document.getElementById("sheetVnrInput");
+const sheetLinkInput = document.getElementById("sheetLinkInput");
+const sheetImportantInfoInput = document.getElementById("sheetImportantInfoInput");
+const sheetStatusInput = document.getElementById("sheetStatusInput");
+const sheetNotesInput = document.getElementById("sheetNotesInput");
+
+const sheetPhoneLink = document.getElementById("sheetPhoneLink");
+const sheetOpenLink = document.getElementById("sheetOpenLink");
+
+const saveContactInfoBtn = document.getElementById("saveContactInfoBtn");
+const saveNotesBtn = document.getElementById("saveNotesBtn");
+const mailCrmBtn = document.getElementById("mailCrmBtn");
+const markProspectedBtn = document.getElementById("markProspectedBtn");
+
+const startLogCallBtn = document.getElementById("startLogCallBtn");
+const callStepPrimary = document.getElementById("callStepPrimary");
+const callStepSecondary = document.getElementById("callStepSecondary");
+
+const customerLogList = document.getElementById("customerLogList");
+
+const sheetGeneralNoteInput = document.getElementById("sheetGeneralNoteInput");
+const saveGeneralNoteFromCardBtn = document.getElementById("saveGeneralNoteFromCardBtn");
+const copyGeneralNoteFromCardBtn = document.getElementById("copyGeneralNoteFromCardBtn");
+const openGeneralNoteFromCardBtn = document.getElementById("openGeneralNoteFromCardBtn");
 
 let cardsCache = [];
 let logCache = [];
+let generalNoteCache = "";
 let currentCardId = null;
 let currentFilter = "all";
 let tenDaysVisible = false;
-
-const LOG_OUTCOMES = [
-  "Svarade",
-  "Inget svar",
-  "Upptaget",
-  "Återkom senare",
-  "Fel nummer",
-  "Bokat möte",
-  "Skicka mail"
-];
+let selectedPrimaryOutcome = null;
+let selectedSecondaryOutcome = null;
 
 function escapeHtml(value = "") {
   return String(value)
@@ -99,6 +113,7 @@ function normalizeCard(raw = {}, id = "") {
   return {
     id,
     name: raw.name || "",
+    contactPerson: raw.contactPerson || "",
     phone: raw.phone || "",
     email: raw.email || "",
     vnr: raw.vnr || "",
@@ -106,6 +121,7 @@ function normalizeCard(raw = {}, id = "") {
     status: raw.status || "",
     importantInfo: raw.importantInfo || "",
     notes: raw.notes || "",
+    highlighted: !!raw.highlighted,
     updatedAt: raw.updatedAt || "",
     createdAt: raw.createdAt || ""
   };
@@ -116,9 +132,14 @@ function normalizeLog(raw = {}, id = "") {
     id,
     cardId: raw.cardId || "",
     name: raw.name || "",
-    outcome: raw.outcome || "Ringd",
+    outcome: raw.outcome || "",
     time: raw.time || new Date().toISOString()
   };
+}
+
+function getNotesPreview(notes = "") {
+  const firstLine = String(notes).split("\n").find(line => line.trim());
+  return firstLine ? firstLine.trim() : "";
 }
 
 function formatDateTime(dateString) {
@@ -132,7 +153,16 @@ function formatDateTime(dateString) {
   });
 }
 
-function formatDateShort(dateString) {
+function formatDateOnly(dateString) {
+  const d = new Date(dateString);
+  return d.toLocaleDateString("sv-SE", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+}
+
+function formatShortDate(dateString) {
   const d = new Date(dateString);
   return d.toLocaleDateString("sv-SE", {
     month: "2-digit",
@@ -148,12 +178,12 @@ function getDateKey(dateString) {
   return `${y}-${m}-${day}`;
 }
 
-function isSameDateKey(dateString, key) {
-  return getDateKey(dateString) === key;
-}
-
 function getTodayKey() {
   return getDateKey(new Date().toISOString());
+}
+
+function isSameDateKey(dateString, key) {
+  return getDateKey(dateString) === key;
 }
 
 function getRelativeDayKey(offsetDays = 0) {
@@ -167,35 +197,30 @@ function getRelativeDayLabel(offsetDays = 0) {
   if (offsetDays === 0) return "Idag";
   if (offsetDays === 1) return "Igår";
   if (offsetDays === 2) return "Förrgår";
-  return formatDateShort(getRelativeDayKey(offsetDays));
+  return formatShortDate(getRelativeDayKey(offsetDays));
 }
 
-function downloadTextFile(filename, content, mime = "text/plain;charset=utf-8") {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+function getCurrentCard() {
+  return cardsCache.find(card => card.id === currentCardId) || null;
 }
 
-function setActivePanel(panelId) {
+function setActivePanel(panelId = null) {
   toolChips.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.panelTarget === panelId);
   });
 
   panelBlocks.forEach(panel => {
     panel.classList.toggle("hidden", panel.id !== panelId);
-    panel.classList.toggle("active", panel.id === panelId);
   });
 }
 
 function setFilter(filter) {
   currentFilter = filter;
+
   filterButtons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.filter === filter);
   });
+
   renderCards();
 }
 
@@ -206,26 +231,38 @@ function getFilteredCards() {
     list = list.filter(card => (card.status || "").trim().toLowerCase() === "ej prospekterad");
   }
 
-  list.sort((a, b) => (a.name || "").localeCompare(b.name || "", "sv"));
+  if (currentFilter === "prospected") {
+    list = list.filter(card => (card.status || "").trim().toLowerCase() === "prospekterad");
+  }
+
+  list.sort((a, b) => {
+    if (a.highlighted && !b.highlighted) return -1;
+    if (!a.highlighted && b.highlighted) return 1;
+    return (a.name || "").localeCompare(b.name || "", "sv");
+  });
+
   return list;
 }
 
 function renderCards() {
-  const filtered = getFilteredCards();
+  const list = getFilteredCards();
 
-  if (!filtered.length) {
+  if (!list.length) {
     cardsEl.innerHTML = `
       <div class="emptyState">
-        Inga kort att visa här ännu.
+        Inga säljkort att visa.
       </div>
     `;
     return;
   }
 
-  cardsEl.innerHTML = filtered.map(card => {
+  cardsEl.innerHTML = list.map(card => {
     const importantInfoHtml = card.importantInfo
       ? `<div class="cardInfoLine">${escapeHtml(card.importantInfo)}</div>`
-      : "";
+      : `<div class="cardInfoLine"></div>`;
+
+    const notePreview = getNotesPreview(card.notes) || "";
+    const contactPreview = card.contactPerson || "Kontakt saknas";
 
     const linkHtml = card.link
       ? `<a class="cardLink" href="${escapeHtml(card.link)}" target="_blank" rel="noopener noreferrer">Öppna länk</a>`
@@ -235,54 +272,38 @@ function renderCards() {
       ? `<a class="cardLink" href="tel:${escapeHtml(card.phone)}">${escapeHtml(card.phone)}</a>`
       : "";
 
-    const statusHtml = card.status
-      ? `<div class="cardStatus">${escapeHtml(card.status)}</div>`
-      : `<div class="cardStatus"></div>`;
-
     return `
-      <article class="card" data-card-id="${escapeHtml(card.id)}">
-        <div class="cardTop">
-          <div class="cardText">
-            ${importantInfoHtml}
-            <div class="cardName">${escapeHtml(card.name || "Namnlös kontakt")}</div>
-            <div class="cardLinks">
-              ${linkHtml}
-              ${phoneHtml}
-            </div>
-            ${statusHtml}
-          </div>
-          <div class="cardBulb">💡</div>
+      <article class="card ${card.highlighted ? "highlighted" : ""}" data-card-id="${escapeHtml(card.id)}">
+        ${importantInfoHtml}
+        <div class="cardTopRow">
+          <div class="cardName">${escapeHtml(card.name || "Namnlös organisation")}</div>
+          <button class="cardBulbButton" data-highlight-id="${escapeHtml(card.id)}" title="Highlighta">💡</button>
+        </div>
+
+        <div class="cardContactPerson">${escapeHtml(contactPreview)}</div>
+        <div class="cardNotePreview">${escapeHtml(notePreview || "Ingen anteckning ännu")}</div>
+
+        <div class="cardLinks">
+          ${linkHtml}
+          ${phoneHtml}
+        </div>
+
+        <div class="cardBottomRow">
+          <div class="cardStatus">${escapeHtml(card.status || "")}</div>
+          <button class="cardQuickAction" data-prospect-id="${escapeHtml(card.id)}">Prospekterad</button>
         </div>
       </article>
     `;
   }).join("");
 }
 
-function renderLog() {
-  if (!logCache.length) {
-    logEl.innerHTML = `
-      <div class="emptyState">
-        Ingen logg ännu.
-      </div>
-    `;
-    return;
-  }
-
-  logEl.innerHTML = logCache.map(item => `
-    <article class="logItem">
-      <div>
-        <div class="logName">${escapeHtml(item.name || "Okänd kontakt")}</div>
-        <span class="logMeta">${escapeHtml(item.outcome)} • ${formatDateTime(item.time)}</span>
-      </div>
-      <button class="deleteLogBtn" data-log-id="${escapeHtml(item.id)}" title="Ta bort loggrad">✕</button>
-    </article>
-  `).join("");
-}
-
 function updateStats() {
   const todayKey = getTodayKey();
   const todaysLogs = logCache.filter(item => isSameDateKey(item.time, todayKey));
-  const todaysAnswers = todaysLogs.filter(item => item.outcome === "Svarade");
+  const todaysAnswers = todaysLogs.filter(item => {
+    const outcome = (item.outcome || "").trim().toLowerCase();
+    return outcome === "svarade" || outcome === "bokat möte" || outcome === "ej intresserad";
+  });
 
   callsTodayEl.textContent = String(todaysLogs.length);
   answersTodayEl.textContent = String(todaysAnswers.length);
@@ -290,7 +311,10 @@ function updateStats() {
 
 function getStatsForDateKey(key) {
   const dayLogs = logCache.filter(item => isSameDateKey(item.time, key));
-  const answers = dayLogs.filter(item => item.outcome === "Svarade").length;
+  const answers = dayLogs.filter(item => {
+    const outcome = (item.outcome || "").trim().toLowerCase();
+    return outcome === "svarade" || outcome === "bokat möte" || outcome === "ej intresserad";
+  }).length;
 
   return {
     calls: dayLogs.length,
@@ -298,47 +322,61 @@ function getStatsForDateKey(key) {
   };
 }
 
-function renderAnalysis() {
-  const summaryOffsets = [0, 1, 2];
+function renderAnalysisDays() {
+  const offsets = [0, 1, 2];
 
-  analysisSummaryEl.innerHTML = summaryOffsets.map(offset => {
+  analysisDaysEl.innerHTML = offsets.map(offset => {
     const key = getRelativeDayKey(offset);
     const stats = getStatsForDateKey(key);
 
     return `
-      <article class="dayCard">
+      <button class="dayCard" data-analysis-day="${escapeHtml(key)}">
         <div class="dayLabel">${getRelativeDayLabel(offset)}</div>
         <div class="dayStats">
           <span>Samtal: <strong>${stats.calls}</strong></span>
           <span>Svar: <strong>${stats.answers}</strong></span>
         </div>
-      </article>
+      </button>
     `;
   }).join("");
 
-  const days = [];
+  const rows = [];
   for (let i = 0; i < 10; i += 1) {
     const key = getRelativeDayKey(i);
     const stats = getStatsForDateKey(key);
-    days.push({
-      label: i === 0 ? "Idag" : i === 1 ? "Igår" : formatDateShort(key),
-      key,
-      ...stats
-    });
+
+    rows.push(`
+      <button class="tenDayRow" data-analysis-day="${escapeHtml(key)}">
+        <div>${i === 0 ? "Idag" : i === 1 ? "Igår" : formatShortDate(key)}</div>
+        <div>Samtal: <strong>${stats.calls}</strong> • Svar: <strong>${stats.answers}</strong></div>
+      </button>
+    `);
   }
 
-  tenDaysWrapEl.innerHTML = days.map(day => `
-    <div class="tenDayRow">
-      <div>
-        <div>${day.label}</div>
-        <div class="tenDayMeta">${day.key}</div>
-      </div>
-      <div>Samtal: <strong>${day.calls}</strong> • Svar: <strong>${day.answers}</strong></div>
-    </div>
-  `).join("");
-
-  tenDaysWrapEl.classList.toggle("hidden", !tenDaysVisible);
+  analysisTenDaysEl.innerHTML = rows.join("");
+  analysisTenDaysEl.classList.toggle("hidden", !tenDaysVisible);
   toggleTenDaysBtn.textContent = tenDaysVisible ? "Dölj 10 dagar" : "Visa 10 dagar";
+}
+
+function renderAnalysisDetail(dayKey) {
+  const dayLogs = logCache.filter(item => isSameDateKey(item.time, dayKey));
+
+  analysisDetailEl.classList.remove("hidden");
+  analysisDetailTitleEl.textContent = `Logg ${dayKey}`;
+
+  if (!dayLogs.length) {
+    analysisDetailListEl.innerHTML = `<div class="emptyState">Ingen logg för denna dag.</div>`;
+    return;
+  }
+
+  analysisDetailListEl.innerHTML = dayLogs.map(item => `
+    <article class="analysisLogItem">
+      <div>
+        <div class="analysisLogName">${escapeHtml(item.name || "Okänd kund")}</div>
+        <div class="analysisLogMeta">${escapeHtml(formatDateTime(item.time))} • ${escapeHtml(item.outcome)}</div>
+      </div>
+    </article>
+  `).join("");
 }
 
 function renderManageList() {
@@ -352,10 +390,11 @@ function renderManageList() {
   manageList.innerHTML = sorted.map(card => `
     <article class="manageCard">
       <div>
-        <div class="manageCardName">${escapeHtml(card.name || "Namnlös kontakt")}</div>
-        <div class="manageCardMeta">${escapeHtml(card.phone || "Inget nummer")} • ${escapeHtml(card.status || "Ingen status")}</div>
+        <div class="manageCardName">${escapeHtml(card.name || "Namnlös organisation")}</div>
+        <div class="manageCardMeta">${escapeHtml(card.contactPerson || "Kontakt saknas")} • ${escapeHtml(card.status || "Ingen status")}</div>
       </div>
-      <div class="manageCardActions">
+
+      <div class="rowActions">
         <button class="smallGhostButton" data-edit-card-id="${escapeHtml(card.id)}" title="Redigera">✎</button>
         <button class="smallDangerButton" data-delete-card-id="${escapeHtml(card.id)}" title="Ta bort">✕</button>
       </div>
@@ -363,26 +402,23 @@ function renderManageList() {
   `).join("");
 }
 
-function renderSurpriseCard() {
-  surpriseCard.textContent = "Tryck på knappen nedan för att få ett slumpat kort.";
+function resetCardForm() {
+  cardFormId.value = "";
+  formName.value = "";
+  formContactPerson.value = "";
+  formPhone.value = "";
+  formEmail.value = "";
+  formVnr.value = "";
+  formLink.value = "";
+  formStatus.value = "";
+  formImportantInfo.value = "";
+  formNotes.value = "";
 }
 
-function populateCardForm(card = null) {
-  if (!card) {
-    cardFormId.value = "";
-    formName.value = "";
-    formPhone.value = "";
-    formEmail.value = "";
-    formVnr.value = "";
-    formLink.value = "";
-    formStatus.value = "";
-    formImportantInfo.value = "";
-    formNotes.value = "";
-    return;
-  }
-
-  cardFormId.value = card.id;
+function populateCardForm(card) {
+  cardFormId.value = card.id || "";
   formName.value = card.name || "";
+  formContactPerson.value = card.contactPerson || "";
   formPhone.value = card.phone || "";
   formEmail.value = card.email || "";
   formVnr.value = card.vnr || "";
@@ -392,17 +428,40 @@ function populateCardForm(card = null) {
   formNotes.value = card.notes || "";
 }
 
+function renderCustomerLog(cardId) {
+  const items = logCache
+    .filter(item => item.cardId === cardId)
+    .sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  if (!items.length) {
+    customerLogList.innerHTML = `<div class="emptyState">Ingen logg på kunden ännu.</div>`;
+    return;
+  }
+
+  customerLogList.innerHTML = items.map(item => `
+    <article class="customerLogItem">
+      <div>
+        <div class="customerLogTitle">${escapeHtml(item.outcome)}</div>
+        <div class="customerLogMeta">${escapeHtml(formatDateTime(item.time))}</div>
+      </div>
+      <button class="smallDangerButton" data-delete-log-id="${escapeHtml(item.id)}" title="Ta bort loggrad">✕</button>
+    </article>
+  `).join("");
+}
+
 function openBottomSheet(cardId) {
   const card = cardsCache.find(item => item.id === cardId);
   if (!card) return;
 
-  currentCardId = cardId;
+  currentCardId = card.id;
 
   sheetImportantInfo.textContent = card.importantInfo || "";
-  sheetName.textContent = card.name || "Namnlös kontakt";
+  sheetName.textContent = card.name || "Namnlös organisation";
+  sheetContactPreview.textContent = card.contactPerson || "Kontakt saknas";
   sheetStatus.textContent = card.status || "";
 
   sheetNameInput.value = card.name || "";
+  sheetContactPersonInput.value = card.contactPerson || "";
   sheetPhoneInput.value = card.phone || "";
   sheetEmailInput.value = card.email || "";
   sheetVnrInput.value = card.vnr || "";
@@ -410,6 +469,8 @@ function openBottomSheet(cardId) {
   sheetImportantInfoInput.value = card.importantInfo || "";
   sheetStatusInput.value = card.status || "";
   sheetNotesInput.value = card.notes || "";
+
+  sheetGeneralNoteInput.value = generalNoteCache || "";
 
   if (card.phone) {
     sheetPhoneLink.href = `tel:${card.phone}`;
@@ -427,6 +488,9 @@ function openBottomSheet(cardId) {
     sheetOpenLink.classList.add("hidden");
   }
 
+  resetCallLogFlow();
+  renderCustomerLog(card.id);
+
   bottomSheet.classList.add("open");
   sheetOverlay.classList.add("open");
   bottomSheet.setAttribute("aria-hidden", "false");
@@ -437,10 +501,50 @@ function closeBottomSheet() {
   sheetOverlay.classList.remove("open");
   bottomSheet.setAttribute("aria-hidden", "true");
   currentCardId = null;
+  resetCallLogFlow();
 }
 
-function getCurrentCard() {
-  return cardsCache.find(item => item.id === currentCardId) || null;
+function resetCallLogFlow() {
+  selectedPrimaryOutcome = null;
+  selectedSecondaryOutcome = null;
+  callStepPrimary.classList.add("hidden");
+  callStepSecondary.classList.add("hidden");
+
+  document.querySelectorAll("[data-primary-outcome]").forEach(btn => {
+    btn.classList.remove("selected");
+  });
+
+  document.querySelectorAll("[data-secondary-outcome]").forEach(btn => {
+    btn.classList.remove("selected");
+  });
+}
+
+function getCrmRecipient(vnr) {
+  const clean = String(vnr || "").trim();
+  if (!clean) return "";
+  return `${clean}.eventful@severamail.com`;
+}
+
+function buildCustomerMailBody(card, customerLogs) {
+  const lines = [
+    `Namn: ${card.name || ""}`,
+    `Telefonnummer: ${card.phone || ""}`,
+    "",
+    "Anteckningar:",
+    `${card.notes || ""}`,
+    "",
+    "Samtalslogg:"
+  ];
+
+  if (!customerLogs.length) {
+    lines.push("Ingen logg ännu.");
+  } else {
+    customerLogs.forEach(item => {
+      lines.push(`${formatDateTime(item.time)} — ${item.outcome}`);
+    });
+  }
+
+  return lines.join("\n");
 }
 
 async function loadCards() {
@@ -451,40 +555,66 @@ async function loadCards() {
 }
 
 async function loadLog() {
-  const q = query(collection(db, "log"), orderBy("time", "desc"), limit(200));
+  const q = query(collection(db, "log"), orderBy("time", "desc"), limit(500));
   const snapshot = await getDocs(q);
   logCache = snapshot.docs.map(item => normalizeLog(item.data(), item.id));
-  renderLog();
   updateStats();
-  renderAnalysis();
+  renderAnalysisDays();
+
+  if (currentCardId) {
+    renderCustomerLog(currentCardId);
+  }
+}
+
+async function loadGeneralNote() {
+  const ref = doc(db, "meta", "generalNote");
+  const snap = await getDoc(ref);
+
+  generalNoteCache = snap.exists() ? String(snap.data()?.content || "") : "";
+  generalNoteInput.value = generalNoteCache;
+  sheetGeneralNoteInput.value = generalNoteCache;
 }
 
 async function refreshAll() {
-  await Promise.all([loadCards(), loadLog()]);
+  await Promise.all([loadCards(), loadLog(), loadGeneralNote()]);
 }
 
-async function createLog(card, outcome) {
-  await addDoc(collection(db, "log"), {
-    cardId: card.id,
-    name: card.name || "Namnlös kontakt",
-    outcome,
-    time: new Date().toISOString()
+async function toggleHighlight(cardId) {
+  const card = cardsCache.find(item => item.id === cardId);
+  if (!card) return;
+
+  await updateDoc(doc(db, "cards", cardId), {
+    highlighted: !card.highlighted,
+    updatedAt: new Date().toISOString()
   });
 
-  await loadLog();
+  await loadCards();
+
+  if (currentCardId === cardId) {
+    openBottomSheet(cardId);
+  }
 }
 
-async function deleteLogEntry(logId) {
-  await deleteDoc(doc(db, "log", logId));
-  await loadLog();
+async function markCardProspected(cardId) {
+  await updateDoc(doc(db, "cards", cardId), {
+    status: "Prospekterad",
+    updatedAt: new Date().toISOString()
+  });
+
+  await loadCards();
+
+  if (currentCardId === cardId) {
+    openBottomSheet(cardId);
+  }
 }
 
-async function saveCurrentCardInfo() {
+async function saveCurrentContactInfo() {
   const card = getCurrentCard();
   if (!card) return;
 
-  const updated = {
+  await updateDoc(doc(db, "cards", card.id), {
     name: sheetNameInput.value.trim(),
+    contactPerson: sheetContactPersonInput.value.trim(),
     phone: sheetPhoneInput.value.trim(),
     email: sheetEmailInput.value.trim(),
     vnr: sheetVnrInput.value.trim(),
@@ -493,9 +623,8 @@ async function saveCurrentCardInfo() {
     status: sheetStatusInput.value.trim(),
     notes: sheetNotesInput.value.trim(),
     updatedAt: new Date().toISOString()
-  };
+  });
 
-  await updateDoc(doc(db, "cards", card.id), updated);
   await loadCards();
   openBottomSheet(card.id);
 }
@@ -513,30 +642,59 @@ async function saveCurrentNotes() {
   openBottomSheet(card.id);
 }
 
-function openMailToCrm() {
-  const card = getCurrentCard();
-  if (!card) return;
+async function saveGeneralNote(content) {
+  await setDoc(doc(db, "meta", "generalNote"), {
+    content,
+    updatedAt: new Date().toISOString()
+  });
 
-  const subject = encodeURIComponent(`CRM - ${card.name || "Kontakt"}`);
-  const body = encodeURIComponent(
-`Kontakt: ${card.name || ""}
-Telefon: ${card.phone || ""}
-E-post: ${card.email || ""}
-VNR: ${card.vnr || ""}
-Länk: ${card.link || ""}
-
-Anteckningar:
-${sheetNotesInput.value.trim()}`
-  );
-
-  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  generalNoteCache = content;
+  generalNoteInput.value = content;
+  sheetGeneralNoteInput.value = content;
 }
 
-async function saveCardFromManageForm(event) {
+async function createLog(card, outcome) {
+  await addDoc(collection(db, "log"), {
+    cardId: card.id,
+    name: card.name || "",
+    outcome,
+    time: new Date().toISOString()
+  });
+
+  if (outcome === "Bokat möte") {
+    await updateDoc(doc(db, "cards", card.id), {
+      status: "Bokat möte",
+      updatedAt: new Date().toISOString()
+    });
+    await loadCards();
+  }
+
+  if (outcome === "Ej intresserad") {
+    await updateDoc(doc(db, "cards", card.id), {
+      status: "Ej intresserad",
+      updatedAt: new Date().toISOString()
+    });
+    await loadCards();
+  }
+
+  await loadLog();
+
+  if (currentCardId === card.id) {
+    openBottomSheet(card.id);
+  }
+}
+
+async function deleteLogEntry(logId) {
+  await deleteDoc(doc(db, "log", logId));
+  await loadLog();
+}
+
+async function saveCardFromForm(event) {
   event.preventDefault();
 
   const payload = {
     name: formName.value.trim(),
+    contactPerson: formContactPerson.value.trim(),
     phone: formPhone.value.trim(),
     email: formEmail.value.trim(),
     vnr: formVnr.value.trim(),
@@ -548,124 +706,161 @@ async function saveCardFromManageForm(event) {
   };
 
   if (!payload.name) {
-    alert("Namn behövs.");
+    alert("Organisation behövs.");
     return;
   }
 
   if (cardFormId.value) {
     await updateDoc(doc(db, "cards", cardFormId.value), payload);
   } else {
-    const createdAt = new Date().toISOString();
     await addDoc(collection(db, "cards"), {
       ...payload,
-      createdAt
+      highlighted: false,
+      createdAt: new Date().toISOString()
     });
   }
 
-  populateCardForm(null);
+  resetCardForm();
   await loadCards();
 }
 
 async function deleteCard(cardId) {
-  const confirmed = window.confirm("Ta bort detta kort?");
-  if (!confirmed) return;
+  const ok = window.confirm("Ta bort detta kort?");
+  if (!ok) return;
 
   await deleteDoc(doc(db, "cards", cardId));
   await loadCards();
+
+  if (currentCardId === cardId) {
+    closeBottomSheet();
+  }
 }
 
-async function handleJsonImport(file) {
-  const text = await file.text();
-  const parsed = JSON.parse(text);
-
-  if (Array.isArray(parsed.cards)) {
-    for (const card of parsed.cards) {
-      const ref = card.id ? doc(db, "cards", card.id) : doc(collection(db, "cards"));
-      const cleanCard = normalizeCard(card, card.id || ref.id);
-      await setDoc(ref, {
-        name: cleanCard.name,
-        phone: cleanCard.phone,
-        email: cleanCard.email,
-        vnr: cleanCard.vnr,
-        link: cleanCard.link,
-        status: cleanCard.status,
-        importantInfo: cleanCard.importantInfo,
-        notes: cleanCard.notes,
-        updatedAt: cleanCard.updatedAt || new Date().toISOString(),
-        createdAt: cleanCard.createdAt || new Date().toISOString()
-      });
+function buildTemplateRows() {
+  return [
+    {
+      name: "",
+      contactPerson: "",
+      phone: "",
+      email: "",
+      vnr: "",
+      link: "",
+      status: "",
+      importantInfo: "",
+      notes: ""
     }
+  ];
+}
+
+function exportWorkbook() {
+  const cardsRows = cardsCache.map(card => ({
+    name: card.name || "",
+    contactPerson: card.contactPerson || "",
+    phone: card.phone || "",
+    email: card.email || "",
+    vnr: card.vnr || "",
+    link: card.link || "",
+    status: card.status || "",
+    importantInfo: card.importantInfo || "",
+    notes: card.notes || "",
+    highlighted: card.highlighted ? "true" : "false"
+  }));
+
+  const logRows = logCache.map(item => ({
+    name: item.name || "",
+    outcome: item.outcome || "",
+    date: formatDateOnly(item.time),
+    time: formatDateTime(item.time),
+    cardId: item.cardId || ""
+  }));
+
+  const wb = XLSX.utils.book_new();
+  const wsCards = XLSX.utils.json_to_sheet(cardsRows.length ? cardsRows : buildTemplateRows());
+  const wsLog = XLSX.utils.json_to_sheet(logRows.length ? logRows : [{ name: "", outcome: "", date: "", time: "", cardId: "" }]);
+
+  XLSX.utils.book_append_sheet(wb, wsCards, "Cards");
+  XLSX.utils.book_append_sheet(wb, wsLog, "Logg");
+  XLSX.writeFile(wb, `PHX1-export-${getTodayKey()}.xlsx`);
+}
+
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(buildTemplateRows());
+  XLSX.utils.book_append_sheet(wb, ws, "Cards");
+  XLSX.writeFile(wb, "PHX1-mall.xlsx");
+}
+
+async function overwriteCardsFromExcel(file) {
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+  const existingCards = await getDocs(collection(db, "cards"));
+  for (const snap of existingCards.docs) {
+    await deleteDoc(doc(db, "cards", snap.id));
   }
 
-  if (Array.isArray(parsed.log)) {
-    for (const item of parsed.log) {
-      const ref = item.id ? doc(db, "log", item.id) : doc(collection(db, "log"));
-      const cleanLog = normalizeLog(item, item.id || ref.id);
-      await setDoc(ref, {
-        cardId: cleanLog.cardId,
-        name: cleanLog.name,
-        outcome: cleanLog.outcome,
-        time: cleanLog.time
-      });
-    }
+  for (const row of rows) {
+    const name = String(row.name || "").trim();
+    if (!name) continue;
+
+    await addDoc(collection(db, "cards"), {
+      name,
+      contactPerson: String(row.contactPerson || "").trim(),
+      phone: String(row.phone || "").trim(),
+      email: String(row.email || "").trim(),
+      vnr: String(row.vnr || "").trim(),
+      link: String(row.link || "").trim(),
+      status: String(row.status || "").trim(),
+      importantInfo: String(row.importantInfo || "").trim(),
+      notes: String(row.notes || "").trim(),
+      highlighted: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
   }
 
-  await refreshAll();
+  await loadCards();
 }
 
-function exportJsonBackup() {
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    cards: cardsCache,
-    log: logCache
-  };
-
-  downloadTextFile(
-    `phx1-backup-${getTodayKey()}.json`,
-    JSON.stringify(payload, null, 2),
-    "application/json;charset=utf-8"
-  );
+function copyTextToClipboard(text) {
+  if (!text) return;
+  navigator.clipboard.writeText(text).catch(() => {});
 }
 
-function exportLogCsv() {
-  const header = ["name", "outcome", "time", "cardId"];
-  const rows = logCache.map(item => [
-    item.name || "",
-    item.outcome || "",
-    item.time || "",
-    item.cardId || ""
-  ]);
+function handleMailCrm() {
+  const card = getCurrentCard();
+  if (!card) return;
 
-  const csv = [
-    header.join(","),
-    ...rows.map(row =>
-      row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")
-    )
-  ].join("\n");
-
-  downloadTextFile(`phx1-logg-${getTodayKey()}.csv`, csv, "text/csv;charset=utf-8");
-}
-
-function handleSurprise() {
-  if (!cardsCache.length) {
-    surpriseCard.textContent = "Det finns inga kort ännu.";
+  const recipient = getCrmRecipient(sheetVnrInput.value.trim() || card.vnr);
+  if (!recipient) {
+    alert("VNR saknas.");
     return;
   }
 
-  const random = cardsCache[Math.floor(Math.random() * cardsCache.length)];
-  surpriseCard.innerHTML = `
-    <strong>${escapeHtml(random.name || "Namnlös kontakt")}</strong><br>
-    <span class="miniText">${escapeHtml(random.phone || "Inget nummer")}</span><br>
-    <span class="miniText">${escapeHtml(random.importantInfo || random.status || "Ingen extra info")}</span>
-  `;
+  const customerLogs = logCache
+    .filter(item => item.cardId === card.id)
+    .sort((a, b) => new Date(b.time) - new Date(a.time))
+    .slice(0, 20);
+
+  const subject = encodeURIComponent(`CRM - ${card.name || "Kontakt"}`);
+  const body = encodeURIComponent(buildCustomerMailBody({
+    ...card,
+    notes: sheetNotesInput.value.trim(),
+    phone: sheetPhoneInput.value.trim() || card.phone
+  }, customerLogs));
+
+  window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
 }
 
 function bindAccordion() {
   document.addEventListener("click", (event) => {
-    const toggle = event.target.closest("[data-accordion-toggle]");
+    const toggle = event.target.closest("[data-accordion-target]");
     if (!toggle) return;
 
-    const targetId = toggle.dataset.accordionToggle;
+    const targetId = toggle.dataset.accordionTarget;
     const body = document.getElementById(targetId);
     if (!body) return;
 
@@ -674,69 +869,62 @@ function bindAccordion() {
 }
 
 function bindEvents() {
+  refreshBtn.addEventListener("click", refreshAll);
+
   toolChips.forEach(btn => {
     btn.addEventListener("click", () => {
-      setActivePanel(btn.dataset.panelTarget);
+      const isOpen = !document.getElementById(btn.dataset.panelTarget).classList.contains("hidden");
+      setActivePanel(isOpen ? null : btn.dataset.panelTarget);
     });
   });
 
   filterButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      setFilter(btn.dataset.filter);
-    });
+    btn.addEventListener("click", () => setFilter(btn.dataset.filter));
   });
 
-  cardsEl.addEventListener("click", (event) => {
+  cardsEl.addEventListener("click", async (event) => {
+    const highlightBtn = event.target.closest("[data-highlight-id]");
+    if (highlightBtn) {
+      event.stopPropagation();
+      await toggleHighlight(highlightBtn.dataset.highlightId);
+      return;
+    }
+
+    const prospectBtn = event.target.closest("[data-prospect-id]");
+    if (prospectBtn) {
+      event.stopPropagation();
+      await markCardProspected(prospectBtn.dataset.prospectId);
+      return;
+    }
+
     const cardEl = event.target.closest(".card");
     if (!cardEl) return;
 
-    const cardId = cardEl.dataset.cardId;
-    openBottomSheet(cardId);
+    openBottomSheet(cardEl.dataset.cardId);
   });
 
-  logEl.addEventListener("click", async (event) => {
-    const deleteBtn = event.target.closest("[data-log-id]");
-    if (!deleteBtn) return;
-
-    await deleteLogEntry(deleteBtn.dataset.logId);
-  });
-
-  closeSheetBtn.addEventListener("click", closeBottomSheet);
-  sheetOverlay.addEventListener("click", closeBottomSheet);
-
-  saveContactInfoBtn.addEventListener("click", saveCurrentCardInfo);
-  saveNotesBtn.addEventListener("click", saveCurrentNotes);
-  mailCrmBtn.addEventListener("click", openMailToCrm);
-
-  outcomeGrid.addEventListener("click", async (event) => {
-    const btn = event.target.closest("[data-outcome]");
+  analysisDaysEl.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-analysis-day]");
     if (!btn) return;
 
-    const card = getCurrentCard();
-    if (!card) return;
-
-    const outcome = btn.dataset.outcome;
-    await createLog(card, outcome);
-
-    if (outcome === "Skicka mail") {
-      openMailToCrm();
-    }
-
-    if (outcome === "Bokat möte") {
-      await updateDoc(doc(db, "cards", card.id), {
-        status: "Bokat möte",
-        updatedAt: new Date().toISOString()
-      });
-      await loadCards();
-      openBottomSheet(card.id);
-    }
+    renderAnalysisDetail(btn.dataset.analysisDay);
   });
 
-  cardForm.addEventListener("submit", saveCardFromManageForm);
+  analysisTenDaysEl.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-analysis-day]");
+    if (!btn) return;
 
-  resetCardFormBtn.addEventListener("click", () => {
-    populateCardForm(null);
+    renderAnalysisDetail(btn.dataset.analysisDay);
   });
+
+  toggleTenDaysBtn.addEventListener("click", () => {
+    tenDaysVisible = !tenDaysVisible;
+    analysisTenDaysEl.classList.toggle("hidden", !tenDaysVisible);
+    toggleTenDaysBtn.textContent = tenDaysVisible ? "Dölj 10 dagar" : "Visa 10 dagar";
+  });
+
+  cardForm.addEventListener("submit", saveCardFromForm);
+  resetCardFormBtn.addEventListener("click", resetCardForm);
 
   manageList.addEventListener("click", async (event) => {
     const editBtn = event.target.closest("[data-edit-card-id]");
@@ -757,30 +945,121 @@ function bindEvents() {
     }
   });
 
-  toggleTenDaysBtn.addEventListener("click", () => {
-    tenDaysVisible = !tenDaysVisible;
-    renderAnalysis();
-  });
+  downloadTemplateBtn.addEventListener("click", downloadTemplate);
+  exportExcelBtn.addEventListener("click", exportWorkbook);
 
-  exportJsonBtn.addEventListener("click", exportJsonBackup);
-  exportCsvBtn.addEventListener("click", exportLogCsv);
-
-  importJsonInput.addEventListener("change", async (event) => {
+  importExcelInput.addEventListener("change", async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const ok = window.confirm("Detta skriver över alla befintliga kort. Fortsätta?");
+    if (!ok) {
+      importExcelInput.value = "";
+      return;
+    }
+
     try {
-      await handleJsonImport(file);
-      alert("Import klar.");
-      importJsonInput.value = "";
+      await overwriteCardsFromExcel(file);
+      alert("Excel importerat.");
     } catch (error) {
       console.error(error);
       alert("Import misslyckades.");
+    } finally {
+      importExcelInput.value = "";
     }
   });
 
-  surpriseBtn.addEventListener("click", handleSurprise);
-  refreshBtn.addEventListener("click", refreshAll);
+  saveGeneralNoteBtn.addEventListener("click", async () => {
+    await saveGeneralNote(generalNoteInput.value);
+  });
+
+  copyGeneralNoteBtn.addEventListener("click", () => {
+    copyTextToClipboard(generalNoteInput.value);
+  });
+
+  closeSheetBtn.addEventListener("click", closeBottomSheet);
+  sheetOverlay.addEventListener("click", closeBottomSheet);
+
+  saveContactInfoBtn.addEventListener("click", saveCurrentContactInfo);
+  saveNotesBtn.addEventListener("click", saveCurrentNotes);
+  mailCrmBtn.addEventListener("click", handleMailCrm);
+
+  markProspectedBtn.addEventListener("click", async () => {
+    const card = getCurrentCard();
+    if (!card) return;
+    await markCardProspected(card.id);
+  });
+
+  openGeneralNoteFromCardBtn.addEventListener("click", async () => {
+    setActivePanel("generalNotePanel");
+    generalNoteInput.value = generalNoteCache;
+    closeBottomSheet();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  saveGeneralNoteFromCardBtn.addEventListener("click", async () => {
+    await saveGeneralNote(sheetGeneralNoteInput.value);
+  });
+
+  copyGeneralNoteFromCardBtn.addEventListener("click", () => {
+    copyTextToClipboard(sheetGeneralNoteInput.value);
+  });
+
+  startLogCallBtn.addEventListener("click", () => {
+    resetCallLogFlow();
+    callStepPrimary.classList.remove("hidden");
+  });
+
+  callStepPrimary.addEventListener("click", async (event) => {
+    const btn = event.target.closest("[data-primary-outcome]");
+    if (!btn) return;
+
+    selectedPrimaryOutcome = btn.dataset.primaryOutcome;
+
+    document.querySelectorAll("[data-primary-outcome]").forEach(el => {
+      el.classList.toggle("selected", el.dataset.primaryOutcome === selectedPrimaryOutcome);
+    });
+
+    if (selectedPrimaryOutcome === "Inget svar") {
+      const card = getCurrentCard();
+      if (!card) return;
+      await createLog(card, "Inget svar");
+      resetCallLogFlow();
+      return;
+    }
+
+    if (selectedPrimaryOutcome === "Svarade") {
+      callStepSecondary.classList.remove("hidden");
+    }
+  });
+
+  callStepSecondary.addEventListener("click", async (event) => {
+    const btn = event.target.closest("[data-secondary-outcome]");
+    if (!btn) return;
+
+    selectedSecondaryOutcome = btn.dataset.secondaryOutcome;
+
+    document.querySelectorAll("[data-secondary-outcome]").forEach(el => {
+      el.classList.toggle("selected", el.dataset.secondaryOutcome === selectedSecondaryOutcome);
+    });
+
+    const card = getCurrentCard();
+    if (!card) return;
+
+    await createLog(card, selectedSecondaryOutcome);
+    resetCallLogFlow();
+  });
+
+  customerLogList.addEventListener("click", async (event) => {
+    const deleteBtn = event.target.closest("[data-delete-log-id]");
+    if (!deleteBtn) return;
+
+    await deleteLogEntry(deleteBtn.dataset.deleteLogId);
+    const card = getCurrentCard();
+    if (card) {
+      renderCustomerLog(card.id);
+    }
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -793,8 +1072,7 @@ function bindEvents() {
 
 async function init() {
   try {
-    renderSurpriseCard();
-    setActivePanel("analysisPanel");
+    setActivePanel(null);
     setFilter("all");
     await refreshAll();
     bindEvents();
@@ -802,7 +1080,7 @@ async function init() {
     console.error(error);
     cardsEl.innerHTML = `
       <div class="emptyState">
-        Kunde inte läsa från Firebase. Kontrollera att Firestore är igång och att reglerna fortfarande tillåter läsning/skrivning.
+        Kunde inte läsa från Firebase. Kontrollera Firestore och reglerna.
       </div>
     `;
   }
