@@ -13,6 +13,7 @@
   <div class="bgBlob blobA"></div>
   <div class="bgBlob blobB"></div>
   <div class="bgBlob blobC"></div>
+  <div class="bgBlob blobD"></div>
 
   <main class="appShell">
     <header class="topBar">
@@ -37,20 +38,38 @@
     </section>
 
     <section class="quickTools">
-      <button class="toolChip" data-panel-target="analysisPanel">Analys</button>
-      <button class="toolChip" data-panel-target="managePanel">Hantera kort</button>
-      <button class="toolChip" data-panel-target="backupPanel">Backup</button>
-      <button class="toolChip" data-panel-target="generalNotePanel">Generell anteckning</button>
+      <button class="toolChip" data-modal-open="analysisModal">Analys</button>
+      <button class="toolChip" data-modal-open="manageModal">Hantera kort</button>
+      <button class="toolChip" data-modal-open="backupModal">Backup</button>
+      <button class="toolChip" data-modal-open="generalNoteModal">Generell anteckning</button>
     </section>
 
-    <section class="panelBlock hidden" id="analysisPanel">
-      <div class="panelHead">
+    <section class="listHead">
+      <h2>Säljkort</h2>
+
+      <div class="filterRow">
+        <button class="filterButton active" data-filter="all">Alla</button>
+        <button class="filterButton" data-filter="unprospected">Ej prospekterad</button>
+        <button class="filterButton" data-filter="prospected">Prospekterad</button>
+      </div>
+    </section>
+
+    <section id="cards" class="cardsGrid"></section>
+  </main>
+
+  <div class="overlay hidden" id="globalOverlay"></div>
+
+  <aside class="fullModal hidden" id="analysisModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalTopBar">
         <h2>Analys</h2>
-        <button class="ghostButton smallButton" id="toggleTenDaysBtn">Visa 10 dagar</button>
+        <div class="rowActions">
+          <button class="ghostButton smallButton" id="toggleTenDaysBtn">Visa 10 dagar</button>
+          <button class="iconButton modalCloseBtn" data-modal-close="analysisModal">✕</button>
+        </div>
       </div>
 
       <div class="analysisDays" id="analysisDays"></div>
-
       <div class="analysisTenDays hidden" id="analysisTenDays"></div>
 
       <div class="analysisDetail hidden" id="analysisDetail">
@@ -59,11 +78,14 @@
         </div>
         <div id="analysisDetailList" class="analysisDetailList"></div>
       </div>
-    </section>
+    </div>
+  </aside>
 
-    <section class="panelBlock hidden" id="managePanel">
-      <div class="panelHead">
+  <aside class="fullModal hidden" id="manageModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalTopBar">
         <h2>Hantera kort</h2>
+        <button class="iconButton modalCloseBtn" data-modal-close="manageModal">✕</button>
       </div>
 
       <form id="cardForm" class="manageForm">
@@ -113,7 +135,7 @@
 
         <label class="field">
           <span>Anteckningar</span>
-          <textarea id="formNotes" rows="5" placeholder="Kundanteckningar..."></textarea>
+          <textarea id="formNotes" rows="6" placeholder="Kundanteckningar..."></textarea>
         </label>
 
         <div class="formActions">
@@ -123,11 +145,14 @@
       </form>
 
       <div id="manageList" class="manageList"></div>
-    </section>
+    </div>
+  </aside>
 
-    <section class="panelBlock hidden" id="backupPanel">
-      <div class="panelHead">
+  <aside class="fullModal hidden" id="backupModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalTopBar">
         <h2>Backup</h2>
+        <button class="iconButton modalCloseBtn" data-modal-close="backupModal">✕</button>
       </div>
 
       <div class="backupActions">
@@ -135,171 +160,159 @@
         <button class="ghostButton" id="exportExcelBtn">Exportera Excel</button>
       </div>
 
+      <div class="importModeRow">
+        <button class="ghostButton smallButton importModeBtn active" data-import-mode="append">Importera och lägg till</button>
+        <button class="ghostButton smallButton importModeBtn" data-import-mode="replace">Importera och skriv över kort</button>
+      </div>
+
       <label class="field importField">
-        <span>Importera Excel (skriver över alla kort)</span>
+        <span>Importera Excel</span>
         <input id="importExcelInput" type="file" accept=".xlsx,.xls" />
       </label>
 
       <p class="helperText">
-        Importen skriver över alla befintliga kort. Samtalsloggen behålls.
+        Status, inklusive Prospekterad, följer med i export och import.
       </p>
-    </section>
+    </div>
+  </aside>
 
-    <section class="panelBlock hidden" id="generalNotePanel">
-      <div class="panelHead">
+  <aside class="fullModal hidden" id="generalNoteModal" aria-hidden="true">
+    <div class="modalCard">
+      <div class="modalTopBar">
         <h2>Generell anteckning</h2>
+        <button class="iconButton modalCloseBtn" data-modal-close="generalNoteModal">✕</button>
       </div>
 
       <label class="field">
         <span>Manus / standardtext / stöd</span>
-        <textarea id="generalNoteInput" rows="10" placeholder="Skriv ditt manus här..."></textarea>
+        <textarea id="generalNoteInput" rows="16" placeholder="Skriv ditt manus här..."></textarea>
       </label>
 
       <div class="formActions">
         <button class="primaryButton" id="saveGeneralNoteBtn">Spara</button>
         <button class="ghostButton" id="copyGeneralNoteBtn">Kopiera text</button>
       </div>
-    </section>
-
-    <section class="listHead">
-      <h2>Säljkort</h2>
-
-      <div class="filterRow">
-        <button class="filterButton active" data-filter="all">Alla</button>
-        <button class="filterButton" data-filter="unprospected">Ej prospekterad</button>
-        <button class="filterButton" data-filter="prospected">Prospekterad</button>
-      </div>
-    </section>
-
-    <section id="cards" class="cardsGrid"></section>
-  </main>
-
-  <div class="sheetOverlay" id="sheetOverlay"></div>
-
-  <aside class="bottomSheet" id="bottomSheet" aria-hidden="true">
-    <div class="sheetTopBar">
-      <button class="sheetClose" id="closeSheetBtn" aria-label="Stäng">✕</button>
-      <div class="sheetHandle"></div>
     </div>
+  </aside>
 
-    <div class="sheetContent">
-      <div class="sheetHero">
-        <div class="sheetInfoLine" id="sheetImportantInfo"></div>
-        <h2 class="sheetOrgName" id="sheetName">Organisation</h2>
-        <div class="sheetContactPreview" id="sheetContactPreview">Kontakt saknas</div>
-        <div class="sheetStatus" id="sheetStatus"></div>
-
-        <div class="sheetTopActions">
-          <button class="ghostButton smallButton" id="markProspectedBtn">Prospekterad</button>
-          <button class="ghostButton smallButton" id="openGeneralNoteFromCardBtn">Generell anteckning</button>
-        </div>
+  <aside class="bottomSheet hidden" id="bottomSheet" aria-hidden="true">
+    <div class="sheetCard">
+      <div class="sheetTopBar">
+        <button class="iconButton modalCloseBtn" id="closeSheetBtn">✕</button>
       </div>
 
-      <section class="sheetSection accordionSection">
-        <button class="accordionHeader" data-accordion-target="contactAccordionBody">
-          <span>Kontakt</span>
-          <span class="accordionArrow">⌄</span>
-        </button>
+      <div class="sheetContent">
+        <div class="sheetHero">
+          <div class="sheetInfoLine" id="sheetImportantInfo"></div>
 
-        <div class="accordionBody" id="contactAccordionBody">
-          <div class="fieldStack">
-            <label class="field">
-              <span>Organisation</span>
-              <input id="sheetNameInput" type="text" />
-            </label>
-
-            <label class="field">
-              <span>Kontaktperson</span>
-              <input id="sheetContactPersonInput" type="text" />
-            </label>
-
-            <label class="field">
-              <span>Telefonnummer</span>
-              <input id="sheetPhoneInput" type="text" />
-            </label>
-
-            <label class="field">
-              <span>E-post</span>
-              <input id="sheetEmailInput" type="email" />
-            </label>
-
-            <label class="field">
-              <span>VNR</span>
-              <input id="sheetVnrInput" type="text" />
-            </label>
-
-            <label class="field">
-              <span>Länk</span>
-              <input id="sheetLinkInput" type="url" />
-            </label>
-
-            <label class="field">
-              <span>Viktig information</span>
-              <input id="sheetImportantInfoInput" type="text" />
-            </label>
-
-            <label class="field">
-              <span>Status</span>
-              <input id="sheetStatusInput" type="text" />
-            </label>
+          <div class="sheetTitleRow">
+            <h2 class="sheetOrgName" id="sheetName">Organisation</h2>
+            <div class="sheetStatusBadge" id="sheetStatusBadge"></div>
           </div>
 
-          <div class="sheetLinkRow">
-            <a id="sheetPhoneLink" class="sheetActionLink hidden" href="#">Ring</a>
-            <a id="sheetOpenLink" class="sheetActionLink hidden" href="#" target="_blank" rel="noopener noreferrer">Öppna länk</a>
+          <div class="sheetContactPreview" id="sheetContactPreview">Kontakt saknas</div>
+
+          <div class="sheetTopActions">
+            <button class="ghostButton smallButton" id="toggleProspectedBtn">Markera prospekterad</button>
+            <button class="ghostButton smallButton" id="openGeneralNoteFromCardBtn">Generell anteckning</button>
           </div>
+        </div>
+
+        <section class="sheetSection accordionSection">
+          <button class="accordionHeader" data-accordion-target="contactAccordionBody">
+            <span>Kontakt</span>
+            <span class="accordionArrow">⌄</span>
+          </button>
+
+          <div class="accordionBody" id="contactAccordionBody">
+            <div class="fieldStack">
+              <label class="field">
+                <span>Organisation</span>
+                <input id="sheetNameInput" type="text" />
+              </label>
+
+              <label class="field">
+                <span>Kontaktperson</span>
+                <input id="sheetContactPersonInput" type="text" />
+              </label>
+
+              <label class="field">
+                <span>Telefonnummer</span>
+                <input id="sheetPhoneInput" type="text" />
+              </label>
+
+              <label class="field">
+                <span>E-post</span>
+                <input id="sheetEmailInput" type="email" />
+              </label>
+
+              <label class="field">
+                <span>VNR</span>
+                <input id="sheetVnrInput" type="text" />
+              </label>
+
+              <label class="field">
+                <span>Länk</span>
+                <input id="sheetLinkInput" type="url" />
+              </label>
+
+              <label class="field">
+                <span>Viktig information</span>
+                <input id="sheetImportantInfoInput" type="text" />
+              </label>
+
+              <label class="field">
+                <span>Status</span>
+                <input id="sheetStatusInput" type="text" />
+              </label>
+            </div>
+
+            <div class="sheetLinkRow">
+              <a id="sheetPhoneLink" class="sheetActionLink hidden" href="#">Ring</a>
+              <a id="sheetOpenLink" class="sheetActionLink hidden" href="#" target="_blank" rel="noopener noreferrer">Öppna länk</a>
+            </div>
+
+            <div class="rowActions">
+              <button class="primaryButton" id="saveContactInfoBtn">Spara kontaktinfo</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="sheetSection">
+          <div class="sectionMiniHead">Anteckningar</div>
+          <label class="field">
+            <textarea id="sheetNotesInput" rows="6" placeholder="Kundanteckningar..."></textarea>
+          </label>
 
           <div class="rowActions">
-            <button class="primaryButton" id="saveContactInfoBtn">Spara kontaktinfo</button>
+            <button class="primaryButton" id="saveNotesBtn">Spara anteckningar</button>
+            <button class="ghostButton" id="mailCrmBtn">Maila CRM</button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="sheetSection">
-        <div class="sectionMiniHead">Anteckningar</div>
-        <label class="field">
-          <textarea id="sheetNotesInput" rows="6" placeholder="Kundanteckningar..."></textarea>
-        </label>
+        <section class="sheetSection">
+          <div class="sectionMiniHead">Logga samtal</div>
 
-        <div class="rowActions">
-          <button class="primaryButton" id="saveNotesBtn">Spara anteckningar</button>
-          <button class="ghostButton" id="mailCrmBtn">Maila CRM</button>
-        </div>
-      </section>
+          <div class="callLogFlow">
+            <button class="primaryButton" id="startLogCallBtn">Logga samtal</button>
 
-      <section class="sheetSection">
-        <div class="sectionMiniHead">Logga samtal</div>
+            <div class="callStep hidden" id="callStepPrimary">
+              <button class="choiceButton" data-primary-outcome="Inget svar">Inget svar</button>
+              <button class="choiceButton" data-primary-outcome="Svarade">Svarade</button>
+            </div>
 
-        <div class="callLogFlow">
-          <button class="primaryButton" id="startLogCallBtn">Logga samtal</button>
-
-          <div class="callStep hidden" id="callStepPrimary">
-            <button class="choiceButton" data-primary-outcome="Inget svar">Inget svar</button>
-            <button class="choiceButton" data-primary-outcome="Svarade">Svarade</button>
+            <div class="callStep hidden" id="callStepSecondary">
+              <button class="choiceButton" data-secondary-outcome="Bokat möte">Bokat möte</button>
+              <button class="choiceButton" data-secondary-outcome="Ej intresserad">Ej intresserad</button>
+            </div>
           </div>
+        </section>
 
-          <div class="callStep hidden" id="callStepSecondary">
-            <button class="choiceButton" data-secondary-outcome="Bokat möte">Bokat möte</button>
-            <button class="choiceButton" data-secondary-outcome="Ej intresserad">Ej intresserad</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="sheetSection">
-        <div class="sectionMiniHead">Kundens logg</div>
-        <div id="customerLogList" class="customerLogList"></div>
-      </section>
-
-      <section class="sheetSection">
-        <div class="sectionMiniHead">Generell anteckning</div>
-        <label class="field">
-          <textarea id="sheetGeneralNoteInput" rows="6" placeholder="Generell anteckning / manus..."></textarea>
-        </label>
-        <div class="rowActions">
-          <button class="primaryButton" id="saveGeneralNoteFromCardBtn">Spara</button>
-          <button class="ghostButton" id="copyGeneralNoteFromCardBtn">Kopiera</button>
-        </div>
-      </section>
+        <section class="sheetSection">
+          <div class="sectionMiniHead">Kundens logg</div>
+          <div id="customerLogList" class="customerLogList"></div>
+        </section>
+      </div>
     </div>
   </aside>
 
